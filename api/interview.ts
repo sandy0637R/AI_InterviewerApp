@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_BASE = "http://192.168.0.103:5000/interview"; // replace with your backend URL
+const API_BASE = "http://192.168.0.100:5000/interview"; // replace with your backend URL
 
 export interface StartInterviewPayload {
   role: string;

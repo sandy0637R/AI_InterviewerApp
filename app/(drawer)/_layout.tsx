@@ -14,6 +14,7 @@ export default function DrawerLayout() {
         <Drawer.Screen name="index" options={{ title: "Home" }} />
         <Drawer.Screen name="profile" options={{ title: "Profile" }} />
         <Drawer.Screen name="select_interview" options={{ title: "SelectInterview" }} />
+        <Drawer.Screen name="login" options={{ title: "Login" }} />
         <Drawer.Screen name="interview_chat" options={{ title:"Ai Interview", drawerItemStyle: { display: "none" } }} />
         
       </Drawer>
