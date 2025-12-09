@@ -31,17 +31,22 @@ const InterviewChat: React.FC = () => {
       try {
         const res = await resumeInterview({ sessionId });
         if (res.success) {
-          setMessages(
-            res.answersSoFar.map((a: any) => ({ questionNumber: a.questionNumber, text: a.answer, isUser: true }))
-          );
-          setMessages((prev) => [
-            ...prev,
-            { questionNumber: res.questionNumber, text: res.question, isUser: false },
-          ]);
+          const previousMessages = res.answersSoFar.map((a: any) => ({
+            questionNumber: a.questionNumber,
+            text: a.answer,
+            isUser: true,
+          }));
+          const currentQuestion = {
+            questionNumber: res.questionNumber,
+            text: res.question,
+            isUser: false,
+          };
+          setMessages([...previousMessages, currentQuestion]);
           setCurrentQNumber(res.questionNumber);
         }
       } catch (err) {
         console.log(err);
+        Alert.alert("Error", "Failed to resume interview");
       }
     };
     fetchResume();
@@ -51,61 +56,71 @@ const InterviewChat: React.FC = () => {
     if (!answer.trim()) return;
 
     setMessages((prev) => [...prev, { questionNumber: currentQNumber, text: answer, isUser: true }]);
+
     try {
       const res = await nextQuestion({ sessionId, answer });
       if (res.success) {
         if (res.completed) {
-          setMessages((prev) => [...prev, { questionNumber: "Feedback", text: res.feedback, isUser: false }]);
+          setMessages((prev) => [
+            ...prev,
+            { questionNumber: "Feedback", text: res.feedback, isUser: false },
+          ]);
         } else {
-          setMessages((prev) => [...prev, { questionNumber: res.questionNumber, text: res.question, isUser: false }]);
+          setMessages((prev) => [
+            ...prev,
+            { questionNumber: res.questionNumber, text: res.question, isUser: false },
+          ]);
           setCurrentQNumber(res.questionNumber);
         }
       } else if (res.askAgain) {
-        setMessages((prev) => [...prev, { questionNumber: currentQNumber, text: res.message, isUser: false }]);
+        setMessages((prev) => [
+          ...prev,
+          { questionNumber: currentQNumber, text: res.message, isUser: false },
+        ]);
       }
     } catch (err) {
       console.log(err);
       Alert.alert("Error", "Server error");
     }
+
     setAnswer("");
   };
 
   return (
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
-      >
-        <View style={styles.container}>
-          <FlatList
-            data={messages}
-            keyExtractor={(item, index) => `${item.questionNumber}-${index}`}
-            renderItem={({ item }) => (
-              <View style={[styles.message, item.isUser ? styles.user : styles.ai]}>
-                <Text>{item.text}</Text>
-              </View>
-            )}
-            contentContainerStyle={{ paddingBottom: 80 }} // space for input
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
+    >
+      <View style={styles.container}>
+        <FlatList
+          data={messages}
+          keyExtractor={(item, index) => `${item.questionNumber}-${index}`}
+          renderItem={({ item }) => (
+            <View style={[styles.message, item.isUser ? styles.user : styles.ai]}>
+              <Text>{item.text}</Text>
+            </View>
+          )}
+          contentContainerStyle={{ paddingBottom: 80 }}
+        />
+        <View style={styles.inputContainer}>
+          <TextInput
+            style={styles.input}
+            placeholder="Type your answer..."
+            value={answer}
+            onChangeText={setAnswer}
           />
-          <View style={styles.inputContainer}>
-            <TextInput
-              style={styles.input}
-              placeholder="Type your answer..."
-              value={answer}
-              onChangeText={setAnswer}
-            />
-            <Button title="Send" onPress={handleSend} />
-          </View>
+          <Button title="Send" onPress={handleSend} />
         </View>
-      </KeyboardAvoidingView>
-    
+      </View>
+    </KeyboardAvoidingView>
   );
 };
 
 export default InterviewChat;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 10 ,paddingBottom: 100 },
+  container: { flex: 1, padding: 10, paddingBottom: 100 },
   message: { marginVertical: 5, padding: 10, borderRadius: 5 },
   user: { alignSelf: "flex-end", backgroundColor: "#d1e7dd" },
   ai: { alignSelf: "flex-start", backgroundColor: "#f8d7da" },
