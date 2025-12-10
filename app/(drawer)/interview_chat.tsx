@@ -22,60 +22,102 @@ interface Message {
 const InterviewChat: React.FC = () => {
   const params = useLocalSearchParams();
   const sessionId = params.sessionId as string;
+
   const [messages, setMessages] = useState<Message[]>([]);
   const [answer, setAnswer] = useState("");
-  const [currentQNumber, setCurrentQNumber] = useState(1);
+  const [currentQNumber, setCurrentQNumber] = useState<number>(1);
+  const [isCompleted, setIsCompleted] = useState(false);
+  const [isLoading, setIsLoading] = useState(true); // track API loading
 
   useEffect(() => {
     const fetchResume = async () => {
       try {
         const res = await resumeInterview({ sessionId });
+        console.log("Resume API response:", res);
+
+        const msgs: Message[] = [];
+
         if (res.success) {
-          const previousMessages = res.answersSoFar.map((a: any) => ({
-            questionNumber: a.questionNumber,
-            text: a.answer,
-            isUser: true,
-          }));
-          const currentQuestion = {
-            questionNumber: res.questionNumber,
-            text: res.question,
-            isUser: false,
-          };
-          setMessages([...previousMessages, currentQuestion]);
-          setCurrentQNumber(res.questionNumber);
+          // Add previous answers
+          if (res.answersSoFar && res.answersSoFar.length > 0) {
+            res.answersSoFar.forEach((a: any) => {
+              msgs.push({
+                questionNumber: a.questionNumber ?? 0,
+                text: a.answer ?? "",
+                isUser: true,
+              });
+            });
+          }
+
+          // If session completed → add feedback
+          if (res.completed) {
+            if (res.feedback) {
+              msgs.push({
+                questionNumber: "Feedback",
+                text: res.feedback,
+                isUser: false,
+              });
+            }
+            setIsCompleted(true);
+          } else {
+            // Session not completed → add next question or initialize for new session
+            const nextQNum = res.questionNumber ?? 1;
+            const nextQText = res.question ?? "Question 1";
+
+            msgs.push({
+              questionNumber: nextQNum,
+              text: nextQText,
+              isUser: false,
+            });
+            setCurrentQNumber(nextQNum);
+          }
+        } else {
+          // API failed → initialize new session placeholder
+          msgs.push({ questionNumber: 1, text: "Question 1", isUser: false });
+          setCurrentQNumber(1);
         }
+
+        setMessages(msgs);
       } catch (err) {
-        console.log(err);
+        console.log("Error resuming interview:", err);
         Alert.alert("Error", "Failed to resume interview");
+      } finally {
+        setIsLoading(false);
       }
     };
+
     fetchResume();
   }, [sessionId]);
 
   const handleSend = async () => {
-    if (!answer.trim()) return;
+    if (!answer.trim() || isCompleted) return;
 
-    setMessages((prev) => [...prev, { questionNumber: currentQNumber, text: answer, isUser: true }]);
+    setMessages((prev) => [
+      ...prev,
+      { questionNumber: currentQNumber ?? 0, text: answer, isUser: true },
+    ]);
 
     try {
       const res = await nextQuestion({ sessionId, answer });
+
       if (res.success) {
         if (res.completed) {
           setMessages((prev) => [
             ...prev,
-            { questionNumber: "Feedback", text: res.feedback, isUser: false },
+            { questionNumber: "Feedback", text: res.feedback ?? "", isUser: false },
           ]);
+          setIsCompleted(true);
         } else {
           setMessages((prev) => [
             ...prev,
-            { questionNumber: res.questionNumber, text: res.question, isUser: false },
+            { questionNumber: res.questionNumber ?? 0, text: res.question ?? "", isUser: false },
           ]);
-          setCurrentQNumber(res.questionNumber);
+          setCurrentQNumber(res.questionNumber ?? 1);
         }
       } else if (res.askAgain) {
         setMessages((prev) => [
           ...prev,
-          { questionNumber: currentQNumber, text: res.message, isUser: false },
+          { questionNumber: currentQNumber ?? 0, text: res.message ?? "", isUser: false },
         ]);
       }
     } catch (err) {
@@ -85,6 +127,14 @@ const InterviewChat: React.FC = () => {
 
     setAnswer("");
   };
+
+  if (isLoading) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <Text>Loading...</Text>
+      </View>
+    );
+  }
 
   return (
     <KeyboardAvoidingView
@@ -103,15 +153,18 @@ const InterviewChat: React.FC = () => {
           )}
           contentContainerStyle={{ paddingBottom: 80 }}
         />
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.input}
-            placeholder="Type your answer..."
-            value={answer}
-            onChangeText={setAnswer}
-          />
-          <Button title="Send" onPress={handleSend} />
-        </View>
+
+        {!isCompleted && (
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={styles.input}
+              placeholder="Type your answer..."
+              value={answer}
+              onChangeText={setAnswer}
+            />
+            <Button title="Send" onPress={handleSend} />
+          </View>
+        )}
       </View>
     </KeyboardAvoidingView>
   );
