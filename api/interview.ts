@@ -48,6 +48,32 @@ export interface ResumeInterviewPayload {
   sessionId: string;
 }
 
+// ✅ Full session structure returned by resume
+export interface InterviewSessionResponse {
+  success: boolean;
+  session: {
+    _id: string;
+    role: string;
+    questionsAsked: number;
+    totalQuestions: number;
+    answers: {
+      questionNumber: number;
+      question: string;
+      answer: string;
+    }[];
+    lastQuestion?: string;
+    feedback?: {
+      rating: number;
+      plusPoints: string[];
+      improvements: string[];
+      summary: string;
+    } | null;
+    isCompleted: boolean;
+    createdAt: string;
+    updatedAt: string;
+  };
+}
+
 // ---------------------------------------------
 // API FUNCTIONS
 // ---------------------------------------------
@@ -64,8 +90,10 @@ export const nextQuestion = async (payload: NextQuestionPayload) => {
   return data;
 };
 
-// Resume Session
-export const resumeInterview = async (payload: ResumeInterviewPayload) => {
+// Resume Session (FULL SESSION)
+export const resumeInterview = async (
+  payload: ResumeInterviewPayload
+): Promise<InterviewSessionResponse> => {
   const { data } = await axios.post(`${API_BASE}/resume`, payload);
   return data;
 };
