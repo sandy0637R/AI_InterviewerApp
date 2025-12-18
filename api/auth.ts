@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const AUTH_BASE = "http://192.168.0.101:5000/auth"; // Android emulator
+const AUTH_BASE = "http://192.168.0.100:5000/auth"; // Android emulator
 
 export const loginApi = (payload: { email: string; password: string }) =>
   axios.post(`${AUTH_BASE}/login`, payload);

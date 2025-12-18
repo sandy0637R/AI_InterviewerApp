@@ -1,7 +1,7 @@
 import React, { useEffect } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
-import { showToast } from "../../app-example/components/ToastHelper"; // adjust path
+import { showToast } from "../../components/ToastHelper"; // adjust path
 import { logout, profileRequest } from "../../redux/slices/authSlice";
 import { RootState } from "../../redux/store";
 

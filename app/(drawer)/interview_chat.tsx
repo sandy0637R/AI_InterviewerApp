@@ -1,19 +1,19 @@
+import Mybutton from "@/components/Mybutton";
+import { Colors } from "@/constants/colors";
 import { useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   Alert,
-  Button,
   FlatList,
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
   Text,
   TextInput,
-  View,
+  View
 } from "react-native";
 import type { InterviewSessionResponse } from "../../api/interview";
 import { nextQuestion, resumeInterview } from "../../api/interview";
-
 interface Message {
   id: string;
   text: string;
@@ -193,9 +193,10 @@ ${f.summary}`,
               style={[
                 styles.message,
                 item.isUser ? styles.user : styles.ai,
+                item.id === "feedback" && styles.feedbackMessage,
               ]}
             >
-              <Text>{item.text}</Text>
+              <Text style={[styles.text,item.id === "feedback" && styles.feedbackText,]}>{item.text}</Text>
             </View>
           )}
           keyboardShouldPersistTaps="handled"
@@ -206,11 +207,14 @@ ${f.summary}`,
             <TextInput
               style={styles.input}
               placeholder="Type your answer..."
+              placeholderTextColor={Colors.secondary}
               value={answer}
               onChangeText={setAnswer}
               editable={canAnswer}
+              multiline
+  textAlignVertical="top"
             />
-            <Button title="Send" onPress={handleSend} />
+            <Mybutton title={"Send"} onPress={handleSend} />
           </View>
         )}
       </View>
@@ -221,26 +225,38 @@ ${f.summary}`,
 export default InterviewChat;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 10 },
+  container: { flex: 1, padding: 10 ,paddingBottom:100 ,backgroundColor: Colors.background},
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  message: { marginVertical: 6, padding: 10, borderRadius: 6 },
-  user: { alignSelf: "flex-end", backgroundColor: "#d1e7dd" },
-  ai: { alignSelf: "flex-start", backgroundColor: "#f8d7da" },
+  text:{color: Colors.white, fontSize: 17 , fontWeight: "semibold"},
+  message: { marginVertical: 6, padding: 10, borderRadius: 6 , },
+  user: { alignSelf: "flex-end", backgroundColor: Colors.secondary },
+  ai: { alignSelf: "flex-start", },
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 10,
-    paddingBottom:20,
-    backgroundColor: "#fff",
-    borderTopWidth: 1,
-    borderColor: "#eee",
   },
   input: {
     flex: 1,
     borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 5,
-    padding: 10,
+    borderColor: "#585252ff",
+    backgroundColor: Colors.primary,
+    color: Colors.white,
+    borderRadius: 20,
+    padding:15,
     marginRight: 5,
+    minHeight: 40,     
+  maxHeight: 120,
   },
+  feedbackMessage: {
+  backgroundColor: Colors.primary,
+  alignSelf: "center",
+  borderRadius: 10,
+  padding: 12,
+},
+
+feedbackText: {
+  color: Colors.white,
+  fontWeight: "bold",
+  fontSize: 16,
+},
 });

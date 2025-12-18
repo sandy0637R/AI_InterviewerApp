@@ -2,8 +2,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios, { InternalAxiosRequestConfig } from "axios";
 import { store } from "../redux/store"; // Redux store to read token
 
-const API_BASE = "http://192.168.0.101:5000/interview";
-const SESSION_BASE = "http://192.168.0.101:5000/sessions";
+const API_BASE = "http://192.168.0.100:5000/interview";
+const SESSION_BASE = "http://192.168.0.100:5000/sessions";
 
 // ---------------------------------------------
 // Attach Bearer Token Automatically from Redux or AsyncStorage
