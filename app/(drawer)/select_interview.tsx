@@ -27,7 +27,7 @@ const SelectInterview: React.FC = () => {
   // Auto-redirect if not logged in
   useEffect(() => {
     if (!userId) {
-      console.log("User not logged in, navigating to login");
+     
       router.replace("/login");
     }
   }, [userId]);
@@ -60,7 +60,7 @@ const SelectInterview: React.FC = () => {
       Alert.alert("Error", res?.message || "Failed to start interview");
 
       if (res?.message?.includes("Free interview already used")) {
-        console.log("Free session already used, auto-redirecting to login");
+       
         router.replace("/login");
       }
     } catch (error: any) {

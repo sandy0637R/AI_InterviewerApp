@@ -18,20 +18,20 @@ import {
 
 function* loadStoredAuth(): Generator<any, void, any> {
   try {
-    console.log("🔄 Loading stored auth...");
+   
 
     const token: string | null = yield call([AsyncStorage, "getItem"], "token");
     const userStr: string | null = yield call([AsyncStorage, "getItem"], "user");
 
-    console.log("📦 Stored token:", token);
-    console.log("📦 Stored user string:", userStr);
+   
+    
 
     if (token && userStr) {
       const user = JSON.parse(userStr);
-      console.log("✅ Restoring Redux auth:", user);
+      
       yield put(loginSuccess({ user, token }));
     } else {
-      console.log("❌ No stored auth found");
+ 
     }
   } catch (err) {
     console.log("⚠ Error loading stored auth", err);
