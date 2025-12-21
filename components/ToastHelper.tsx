@@ -5,7 +5,7 @@ export const showToast = (type: "success" | "error" | "info", text1: string, tex
     type,
     text1,
     text2,
-    position: "bottom",
+    position: "top",
     visibilityTime: 3000,
   });
 };

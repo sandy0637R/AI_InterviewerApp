@@ -1,6 +1,7 @@
 import { Stack } from "expo-router";
 import "expo-router/entry";
 import React, { useEffect } from "react";
+import Toast from "react-native-toast-message"; // import Toast
 import { Provider, useDispatch } from "react-redux";
 import { store } from "../redux/store";
 
@@ -12,9 +13,12 @@ function AppBootstrap() {
   }, [dispatch]);
 
   return (
-    <Stack>
-      <Stack.Screen name="(drawer)" options={{ headerShown: false }} />
-    </Stack>
+    <>
+      <Stack>
+        <Stack.Screen name="(drawer)" options={{ headerShown: false }} />
+      </Stack>
+      <Toast /> {/* Mount Toast globally */}
+    </>
   );
 }
 

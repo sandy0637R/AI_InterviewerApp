@@ -1,26 +1,20 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import axios, { InternalAxiosRequestConfig } from "axios";
-import { store } from "../redux/store"; // Redux store to read token
+import axios from "axios";
+import { store } from "../redux/store";
 
 const API_BASE = "http://192.168.0.102:5000/interview";
 const SESSION_BASE = "http://192.168.0.102:5000/sessions";
 
-// ---------------------------------------------
-// Attach Bearer Token Automatically from Redux or AsyncStorage
-// ---------------------------------------------
+// ----------------------------
+// Axios interceptor
+// ----------------------------
 axios.interceptors.request.use(
-  async (config: InternalAxiosRequestConfig) => {
+  async (config) => {
     let token = store.getState().auth.token;
-
-    // fallback: check AsyncStorage if Redux token not yet loaded
-    if (!token) {
-      token = await AsyncStorage.getItem("token");
-    }
+    if (!token) token = await AsyncStorage.getItem("token");
 
     if (token) {
-      if (!config.headers) {
-        config.headers = new axios.AxiosHeaders();
-      }
+      if (!config.headers) config.headers = new axios.AxiosHeaders(); // TS fix
       config.headers.set("Authorization", `Bearer ${token}`);
     }
 
@@ -29,9 +23,9 @@ axios.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// ---------------------------------------------
-// TYPES
-// ---------------------------------------------
+// ----------------------------
+// Types
+// ----------------------------
 export interface StartInterviewPayload {
   role: string;
   totalQuestions: number;
@@ -48,7 +42,6 @@ export interface ResumeInterviewPayload {
   sessionId: string;
 }
 
-// ✅ Full session structure returned by resume
 export interface InterviewSessionResponse {
   success: boolean;
   session: {
@@ -74,31 +67,24 @@ export interface InterviewSessionResponse {
   };
 }
 
-// ---------------------------------------------
-// API FUNCTIONS
-// ---------------------------------------------
-
-// Start Interview
+// ----------------------------
+// API functions
+// ----------------------------
 export const startInterview = async (payload: StartInterviewPayload) => {
   const { data } = await axios.post(`${API_BASE}/start`, payload);
   return data;
 };
 
-// Send Answer & Get Next Question
 export const nextQuestion = async (payload: NextQuestionPayload) => {
   const { data } = await axios.post(`${API_BASE}/next`, payload);
   return data;
 };
 
-// Resume Session (FULL SESSION)
-export const resumeInterview = async (
-  payload: ResumeInterviewPayload
-): Promise<InterviewSessionResponse> => {
+export const resumeInterview = async (payload: ResumeInterviewPayload): Promise<InterviewSessionResponse> => {
   const { data } = await axios.post(`${API_BASE}/resume`, payload);
   return data;
 };
 
-// Get all sessions of a user
 export const getUserSessions = async (userId: string) => {
   const { data } = await axios.get(`${SESSION_BASE}/user/${userId}`);
   return data;

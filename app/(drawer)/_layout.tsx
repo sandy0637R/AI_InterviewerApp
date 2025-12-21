@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
 
   sessionMeta: {
     fontSize: 12,
-    color: Colors.grey4,
+    color: Colors.textGray,
     marginTop: 2,
   },
 }); 
