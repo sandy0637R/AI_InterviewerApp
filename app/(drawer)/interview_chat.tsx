@@ -10,10 +10,11 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  View
+  View,
 } from "react-native";
 import type { InterviewSessionResponse } from "../../api/interview";
 import { nextQuestion, resumeInterview } from "../../api/interview";
+
 interface Message {
   id: string;
   text: string;
@@ -21,7 +22,12 @@ interface Message {
 }
 
 const InterviewChat: React.FC = () => {
-  const { sessionId } = useLocalSearchParams<{ sessionId: string }>();
+  const { sessionId, id } = useLocalSearchParams<{
+    sessionId?: string;
+    id?: string;
+  }>();
+
+  const activeSessionId = sessionId ?? id;
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [answer, setAnswer] = useState("");
@@ -32,12 +38,12 @@ const InterviewChat: React.FC = () => {
   const canAnswer = !isCompleted;
 
   useEffect(() => {
-    if (!sessionId) return;
+    if (!activeSessionId) return;
 
     const loadSession = async () => {
       try {
         const res: InterviewSessionResponse = await resumeInterview({
-          sessionId,
+          sessionId: activeSessionId,
         });
 
         if (!res.success) {
@@ -102,10 +108,10 @@ ${f.summary}`,
     };
 
     loadSession();
-  }, [sessionId]);
+  }, [activeSessionId]);
 
   const handleSend = async () => {
-    if (!answer.trim() || !canAnswer || !sessionId) return;
+    if (!answer.trim() || !canAnswer || !activeSessionId) return;
 
     setMessages((prev) => [
       ...prev,
@@ -117,7 +123,10 @@ ${f.summary}`,
     ]);
 
     try {
-      const res = await nextQuestion({ sessionId, answer });
+      const res = await nextQuestion({
+        sessionId: activeSessionId,
+        answer,
+      });
 
       if (res.success && res.completed && res.feedback) {
         const f = res.feedback;
@@ -196,7 +205,14 @@ ${f.summary}`,
                 item.id === "feedback" && styles.feedbackMessage,
               ]}
             >
-              <Text style={[styles.text,item.id === "feedback" && styles.feedbackText,]}>{item.text}</Text>
+              <Text
+                style={[
+                  styles.text,
+                  item.id === "feedback" && styles.feedbackText,
+                ]}
+              >
+                {item.text}
+              </Text>
             </View>
           )}
           keyboardShouldPersistTaps="handled"
@@ -212,7 +228,7 @@ ${f.summary}`,
               onChangeText={setAnswer}
               editable={canAnswer}
               multiline
-  textAlignVertical="top"
+              textAlignVertical="top"
             />
             <Mybutton title={"Send"} onPress={handleSend} />
           </View>
@@ -225,12 +241,17 @@ ${f.summary}`,
 export default InterviewChat;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 10 ,paddingBottom:100 ,backgroundColor: Colors.background},
+  container: {
+    flex: 1,
+    padding: 10,
+    paddingBottom: 100,
+    backgroundColor: Colors.background,
+  },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  text:{color: Colors.white, fontSize: 17 , fontWeight: "semibold"},
-  message: { marginVertical: 6, padding: 10, borderRadius: 6 , },
+  text: { color: Colors.white, fontSize: 17, fontWeight: "semibold" },
+  message: { marginVertical: 6, padding: 10, borderRadius: 6 },
   user: { alignSelf: "flex-end", backgroundColor: Colors.secondary },
-  ai: { alignSelf: "flex-start", },
+  ai: { alignSelf: "flex-start" },
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -242,21 +263,20 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
     color: Colors.white,
     borderRadius: 20,
-    padding:15,
+    padding: 15,
     marginRight: 5,
-    minHeight: 40,     
-  maxHeight: 120,
+    minHeight: 40,
+    maxHeight: 120,
   },
   feedbackMessage: {
-  backgroundColor: Colors.primary,
-  alignSelf: "center",
-  borderRadius: 10,
-  padding: 12,
-},
-
-feedbackText: {
-  color: Colors.white,
-  fontWeight: "bold",
-  fontSize: 16,
-},
+    backgroundColor: Colors.primary,
+    alignSelf: "center",
+    borderRadius: 10,
+    padding: 12,
+  },
+  feedbackText: {
+    color: Colors.white,
+    fontWeight: "bold",
+    fontSize: 16,
+  },
 });

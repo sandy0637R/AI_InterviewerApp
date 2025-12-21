@@ -91,8 +91,9 @@ function* handleLogout(): Generator {
 
 // ---------- ROOT SAGA ----------
 export default function* authSaga(): Generator {
-    yield call(loadStoredAuth);
+  yield takeLatest("auth/loadStoredAuth", loadStoredAuth);
   yield takeLatest(loginRequest.type, handleLogin);
   yield takeLatest(registerRequest.type, handleRegister);
   yield takeLatest(profileRequest.type, handleProfile);
 }
+

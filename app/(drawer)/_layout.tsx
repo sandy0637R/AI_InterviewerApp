@@ -78,9 +78,19 @@ function CustomContent(props: any) {
 
 
 
-  const handleSessionPress = (sessionId: string) => {
-    router.push(`/session/${sessionId}`);
-  };
+const handleSessionPress = (sessionId: string) => {
+  // segments example: ["(drawer)", "session", "[id]"]
+  const currentSessionId =
+    segments[1] === "session" ? segments[2] : null;
+
+  // ✅ If already on same session → ignore click
+  if (currentSessionId === sessionId) {
+    return;
+  }
+
+  router.push(`/session/${sessionId}`);
+};
+
 
   return (
     <DrawerContentScrollView {...props} contentContainerStyle={styles.drawerContent}>
