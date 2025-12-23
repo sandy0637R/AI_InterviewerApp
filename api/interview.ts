@@ -62,6 +62,7 @@ export interface InterviewSessionResponse {
       summary: string;
     } | null;
     isCompleted: boolean;
+    status: "in_progress" | "completed"; // ✅ added
     createdAt: string;
     updatedAt: string;
   };

@@ -1,5 +1,6 @@
 // app/(drawer)/_layout.tsx
 import { Colors } from "@/constants/colors";
+import AntDesign from '@expo/vector-icons/AntDesign';
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import {
   DrawerContentScrollView,
@@ -9,7 +10,6 @@ import {
 import { useRouter, useSegments } from "expo-router";
 import Drawer from "expo-router/drawer";
 import React, { useState } from "react";
-
 import { StyleSheet, Text, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useSelector } from "react-redux";
@@ -49,48 +49,45 @@ function CustomContent(props: any) {
   const router = useRouter();
   const segments = useSegments();
 
-
- React.useEffect(() => {
-  if (!userId) {
-    setSessions([]);
-    return;
-  }
-
-  const fetchSessions = async () => {
-    try {
-      const res = await getUserSessions(userId);
-      if (res.success && res.sessions) {
-        setSessions(
-          [...res.sessions].sort(
-            (a, b) =>
-              new Date(b.createdAt).getTime() -
-              new Date(a.createdAt).getTime()
-          )
-        );
-      }
-    } catch (err: any) {
-      console.log("Error fetching sessions:", err.message);
+  React.useEffect(() => {
+    if (!userId) {
+      setSessions([]);
+      return;
     }
+
+    const fetchSessions = async () => {
+      try {
+        const res = await getUserSessions(userId);
+        if (res.success && res.sessions) {
+          setSessions(
+            [...res.sessions].sort(
+              (a, b) =>
+                new Date(b.createdAt).getTime() -
+                new Date(a.createdAt).getTime()
+            )
+          );
+        }
+      } catch (err: any) {
+        console.log("Error fetching sessions:", err.message);
+      }
+    };
+
+    fetchSessions();
+  }, [userId, segments]);
+
+  const handleSessionPress = (sessionId: string) => {
+    const currentSessionId =
+      segments[1] === "session" ? segments[2] : null;
+
+    if (currentSessionId === sessionId) {
+      return;
+    }
+
+    router.push(`/session/${sessionId}`);
   };
 
-  fetchSessions();
-}, [userId, segments]);
-
-
-
-const handleSessionPress = (sessionId: string) => {
-  // segments example: ["(drawer)", "session", "[id]"]
   const currentSessionId =
     segments[1] === "session" ? segments[2] : null;
-
-  // ✅ If already on same session → ignore click
-  if (currentSessionId === sessionId) {
-    return;
-  }
-
-  router.push(`/session/${sessionId}`);
-};
-
 
   return (
     <DrawerContentScrollView {...props} contentContainerStyle={styles.drawerContent}>
@@ -109,15 +106,31 @@ const handleSessionPress = (sessionId: string) => {
             <DrawerItem
               key={s._id}
               onPress={() => handleSessionPress(s._id)}
-              style={styles.sessionItem}
+              style={[
+                styles.sessionItem,
+                s._id === currentSessionId ? { backgroundColor: Colors.white } : {}
+              ]}
               label={() => (
-                <View>
-                  <Text style={styles.sessionRole}>
-                    {s.role || "Interview"}
-                  </Text>
-                  <Text style={styles.sessionMeta}>
-                    {getSessionMeta(s, sessions)}
-                  </Text>
+                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+                  <View>
+                    <Text
+                      style={[
+                        styles.sessionRole,
+                        { color: s.isCompleted ? Colors.white : Colors.textGray } // ✅ active/inactive color
+                      ]}
+                    >
+                      {s.role || "Interview"}
+                    </Text>
+                    <Text style={styles.sessionMeta}>{getSessionMeta(s, sessions)}</Text>
+                  </View>
+                  {!s.isCompleted && (
+                    <AntDesign
+                      name="exclamation-circle"
+                      size={15}
+                      color="red"
+                      style={{ marginLeft: 8 }}
+                    />
+                  )}
                 </View>
               )}
             />
@@ -138,7 +151,7 @@ export default function DrawerLayout() {
         screenOptions={{
           headerShown: true,
           headerStyle:{backgroundColor:Colors.primary},
-           headerTintColor: Colors.white,
+          headerTintColor: Colors.white,
           drawerStyle: styles.drawer,
           drawerActiveTintColor: Colors.textGray,
           drawerInactiveTintColor: Colors.white,
@@ -220,4 +233,4 @@ const styles = StyleSheet.create({
     color: Colors.textGray,
     marginTop: 2,
   },
-}); 
+});
