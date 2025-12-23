@@ -33,17 +33,17 @@ function* loadStoredAuth(): Generator<any, void, any> {
 // ---------- LOGIN ----------
 function* handleLogin(action: ReturnType<typeof loginRequest>): Generator<any, void, any> {
   try {
-    // Clear old data
     yield call([AsyncStorage, "removeItem"], "token");
     yield call([AsyncStorage, "removeItem"], "user");
 
-    const res: { data: { user: User; token: string } } = yield call(loginApi, action.payload);
+    const res: { data: { user: User; token: string } } = yield call(
+      loginApi,
+      action.payload
+    );
 
-    // Save AsyncStorage
     yield call([AsyncStorage, "setItem"], "token", res.data.token);
     yield call([AsyncStorage, "setItem"], "user", JSON.stringify(res.data.user));
 
-    // Update Redux first
     yield put(loginSuccess({ user: res.data.user, token: res.data.token }));
   } catch (err: any) {
     yield put(loginFailure(err?.response?.data?.message || "Invalid credentials"));
@@ -54,7 +54,7 @@ function* handleLogin(action: ReturnType<typeof loginRequest>): Generator<any, v
 function* handleRegister(action: ReturnType<typeof registerRequest>): Generator<any, void, any> {
   try {
     yield call(registerApi, action.payload);
-    yield put(registerSuccess());
+    yield put(registerSuccess()); // ✅ now triggers UI
   } catch (err: any) {
     yield put(registerFailure(err?.response?.data?.message || "Error registering"));
   }

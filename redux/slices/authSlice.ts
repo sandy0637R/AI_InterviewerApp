@@ -12,6 +12,7 @@ interface AuthState {
   token: string | null;
   loading: boolean;
   error: string | null;
+  registerSuccess: boolean; // ✅ ADDED
 }
 
 const initialState: AuthState = {
@@ -19,6 +20,7 @@ const initialState: AuthState = {
   token: null,
   loading: false,
   error: null,
+  registerSuccess: false, // ✅ ADDED
 };
 
 const authSlice = createSlice({
@@ -41,16 +43,22 @@ const authSlice = createSlice({
     },
 
     // ---------- REGISTER ----------
-    registerRequest: (state, action: PayloadAction<{ name: string; email: string; password: string }>) => {
+    registerRequest: (
+      state,
+      action: PayloadAction<{ name: string; email: string; password: string }>
+    ) => {
       state.loading = true;
       state.error = null;
+      state.registerSuccess = false; // ✅ RESET
     },
     registerSuccess: (state) => {
       state.loading = false;
+      state.registerSuccess = true; // ✅ KEY FIX
     },
     registerFailure: (state, action: PayloadAction<string>) => {
       state.loading = false;
       state.error = action.payload;
+      state.registerSuccess = false;
     },
 
     // ---------- PROFILE ----------
@@ -72,6 +80,7 @@ const authSlice = createSlice({
       state.token = null;
       state.loading = false;
       state.error = null;
+      state.registerSuccess = false;
     },
   },
 });

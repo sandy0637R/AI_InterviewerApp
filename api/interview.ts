@@ -2,8 +2,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import { store } from "../redux/store";
 
-const API_BASE = "http://192.168.0.102:5000/interview";
-const SESSION_BASE = "http://192.168.0.102:5000/sessions";
+const API_BASE = "http://192.168.0.101:5000/interview";
+const SESSION_BASE = "http://192.168.0.101:5000/sessions";
 
 // ----------------------------
 // Axios interceptor

@@ -1,12 +1,15 @@
+import { useRouter } from "expo-router"; // ✅ added
 import React, { useEffect } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
-import { showToast } from "../../components/ToastHelper"; // adjust path
+import { showToast } from "../../components/ToastHelper";
 import { logout, profileRequest } from "../../redux/slices/authSlice";
 import { RootState } from "../../redux/store";
 
 export default function Profile() {
   const dispatch = useDispatch();
+  const router = useRouter(); // ✅ added
+
   const { user, token, loading } = useSelector((s: RootState) => s.auth);
   const isLoggedIn = !!user && !!token;
 
@@ -19,6 +22,7 @@ export default function Profile() {
   const handleLogout = () => {
     dispatch(logout());
     showToast("success", "Logged Out", "You have successfully logged out.");
+    router.replace("/login"); // ✅ redirect after logout
   };
 
   if (!isLoggedIn)
