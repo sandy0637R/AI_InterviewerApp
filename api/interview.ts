@@ -2,8 +2,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import { store } from "../redux/store";
 
-const API_BASE = "http://192.168.0.101:5000/interview";
-const SESSION_BASE = "http://192.168.0.101:5000/sessions";
+const API_BASE = "http://192.168.0.100:5000/interview";
+const SESSION_BASE = "http://192.168.0.100:5000/sessions";
 
 // ----------------------------
 // Axios interceptor
@@ -88,5 +88,10 @@ export const resumeInterview = async (payload: ResumeInterviewPayload): Promise<
 
 export const getUserSessions = async (userId: string) => {
   const { data } = await axios.get(`${SESSION_BASE}/user/${userId}`);
+  return data;
+};
+
+export const deleteSession = async (sessionId: string) => {
+  const { data } = await axios.delete(`${SESSION_BASE}/${sessionId}`);
   return data;
 };
