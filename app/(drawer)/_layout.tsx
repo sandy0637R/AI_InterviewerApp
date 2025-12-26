@@ -1,4 +1,5 @@
 import { Colors } from "@/constants/colors";
+import { setActiveSessionId } from "@/redux/slices/sessionSlice";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import {
@@ -18,7 +19,7 @@ import {
   View,
 } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { deleteSession, getUserSessions } from "../../api/interview";
 import { RootState } from "../../redux/store";
 
@@ -53,6 +54,7 @@ function CustomContent(props: any) {
   const currentSessionId = useSelector(
     (s: RootState) => s.session.activeSessionId
   );
+  const dispatch = useDispatch();
 
   const userId = user?._id;
   const [sessions, setSessions] = useState<any[]>([]);
@@ -63,8 +65,6 @@ function CustomContent(props: any) {
 
   const router = useRouter();
   const segments = useSegments();
-
-  console.log("🔹 Drawer segments:", segments);
 
   React.useEffect(() => {
     if (!userId) {
@@ -96,60 +96,39 @@ function CustomContent(props: any) {
     if (segments[1] !== "session") {
       setDeleteMode(false);
       setSelectedSessionId(null);
+       if (currentSessionId) dispatch(setActiveSessionId(null))
     }
   }, [segments]);
 
   const handleSessionPress = async (s: any) => {
-    console.log("👉 Session pressed:", s._id);
-    console.log("📍 Current session from redux:", currentSessionId);
-
     if (deleteMode) {
       setSelectedSessionId(s._id);
       Alert.alert("Delete Session?", "This action cannot be undone", [
-        {
-          text: "Cancel",
-          style: "cancel",
-          onPress: () => setSelectedSessionId(null),
-        },
+        { text: "Cancel", style: "cancel", onPress: () => setSelectedSessionId(null) },
         {
           text: "Delete",
           style: "destructive",
           onPress: async () => {
-            console.log("🗑️ Deleting session:", s._id);
-
             await deleteSession(s._id);
-            setSessions((prev) =>
-              prev.filter((sess) => sess._id !== s._id)
-            );
+            setSessions((prev) => prev.filter((sess) => sess._id !== s._id));
             setSelectedSessionId(null);
             setDeleteMode(false);
 
-            console.log(
-              "🧠 Compare current vs deleted:",
-              currentSessionId,
-              s._id,
-              currentSessionId === s._id
-            );
-
             if (currentSessionId === s._id) {
-              console.log("🚀 Navigating to HOME");
+              dispatch(setActiveSessionId(null));
               router.push("/");
             }
           },
         },
       ]);
     } else {
-      if (currentSessionId !== s._id) {
-        router.push(`/session/${s._id}`);
-      }
+      dispatch(setActiveSessionId(s._id)); // update Redux before navigation
+      router.push(`/session/${s._id}`);
     }
   };
 
   return (
-    <DrawerContentScrollView
-      {...props}
-      contentContainerStyle={styles.drawerContent}
-    >
+    <DrawerContentScrollView {...props} contentContainerStyle={styles.drawerContent}>
       <Pressable
         style={{ flex: 1 }}
         onPress={() => {
@@ -157,86 +136,60 @@ function CustomContent(props: any) {
         }}
       >
         <View style={styles.userSection}>
-          <FontAwesome
-            name="user-circle-o"
-            size={50}
-            color={Colors.secondary}
-          />
+          <FontAwesome name="user-circle-o" size={50} color={Colors.secondary} />
           <Text style={styles.username}>{user?.name || "User"}</Text>
         </View>
 
         <DrawerItemList {...props} />
 
         {sessions.length > 0 && (
-          <Pressable onPress={() => {}} style={styles.sessionSection}>
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
-                marginHorizontal: 16,
-              }}
-            >
+          <Pressable style={styles.sessionSection}>
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginHorizontal: 16 }}>
               <Text style={styles.sessionTitle}>Your Sessions</Text>
               <TouchableOpacity onPress={() => setDeleteMode(!deleteMode)}>
-                <AntDesign
-                  name="delete"
-                  size={18}
-                  color={deleteMode ? "red" : Colors.secondary}
-                />
+                <AntDesign name="delete" size={18} color={deleteMode ? "red" : Colors.secondary} />
               </TouchableOpacity>
             </View>
 
             {sessions.map((s) => (
-              <DrawerItem
-                key={s._id}
-                onPress={() => handleSessionPress(s)}
-                style={[
-                  styles.sessionItem,
-                  s._id === currentSessionId
-                    ? { backgroundColor: Colors.white }
-                    : {},
-                  deleteMode && s._id === selectedSessionId
-                    ? { backgroundColor: "red" }
-                    : {},
-                ]}
-                label={() => (
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                    }}
-                  >
-                    <View>
-                      <Text
-                        style={[
-                          styles.sessionRole,
-                          deleteMode && s._id === selectedSessionId
-                            ? { color: "white" }
-                            : s.isCompleted
-                            ? { color: Colors.white }
-                            : { color: Colors.textGray },
-                        ]}
-                      >
-                        {s.role || "Interview"}
-                      </Text>
-                      <Text style={styles.sessionMeta}>
-                        {getSessionMeta(s, sessions)}
-                      </Text>
-                    </View>
-                    {!s.isCompleted && (
-                      <AntDesign
-                        name="exclamation-circle"
-                        size={15}
-                        color="red"
-                        style={{ marginLeft: 8 }}
-                      />
-                    )}
-                  </View>
-                )}
-              />
-            ))}
+  <DrawerItem
+    key={s._id}
+    onPress={() => handleSessionPress(s)}
+    style={[
+      styles.sessionItem,
+      s._id === currentSessionId ? { backgroundColor: Colors.secondary } : {},
+      deleteMode && s._id === selectedSessionId ? { backgroundColor: "red" } : {},
+    ]}
+    label={() => (
+      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+        <View>
+          <Text
+            style={[
+              styles.sessionRole,
+              s._id === currentSessionId
+                ? { color: Colors.white } // active session text
+                : deleteMode && s._id === selectedSessionId
+                ? { color: "white" } // delete mode text
+                : s.isCompleted
+                ? { color: Colors.white }
+                : { color: Colors.textGray },
+            ]}
+          >
+            {s.role || "Interview"}
+          </Text>
+          <Text  style={[
+    styles.sessionMeta,
+    s._id === currentSessionId ? { color: Colors.white } : {},
+  ]}>{getSessionMeta(s, sessions)}</Text>
+        </View>
+        {!s.isCompleted && (
+          <AntDesign name="exclamation-circle" size={15} color="red" style={{ marginLeft: 8 }} />
+        )}
+      </View>
+    )}
+  />
+))}
+
           </Pressable>
         )}
       </Pressable>
@@ -262,39 +215,12 @@ export default function DrawerLayout() {
         }}
       >
         <Drawer.Screen name="index" options={{ title: "Home" }} />
-        <Drawer.Screen
-          name="profile"
-          options={{
-            title: "Profile",
-            drawerItemStyle: { display: user ? "flex" : "none" },
-          }}
-        />
-        <Drawer.Screen
-          name="select_interview"
-          options={{ title: "Select Interview" }}
-        />
-        <Drawer.Screen
-          name="login"
-          options={{
-            title: "Login",
-            drawerItemStyle: { display: user ? "none" : "flex" },
-          }}
-        />
-        <Drawer.Screen
-          name="register"
-          options={{
-            title: "Register",
-            drawerItemStyle: { display: user ? "none" : "flex" },
-          }}
-        />
-        <Drawer.Screen
-          name="interview_chat"
-          options={{ title: "Ai Interview", drawerItemStyle: { display: "none" } }}
-        />
-        <Drawer.Screen
-          name="session/[id]"
-          options={{ title: "Session", drawerItemStyle: { display: "none" } }}
-        />
+        <Drawer.Screen name="profile" options={{ title: "Profile", drawerItemStyle: { display: user ? "flex" : "none" } }} />
+        <Drawer.Screen name="select_interview" options={{ title: "Select Interview" }} />
+        <Drawer.Screen name="login" options={{ title: "Login", drawerItemStyle: { display: user ? "none" : "flex" } }} />
+        <Drawer.Screen name="register" options={{ title: "Register", drawerItemStyle: { display: user ? "none" : "flex" } }} />
+        <Drawer.Screen name="interview_chat" options={{ title: "Ai Interview", drawerItemStyle: { display: "none" } }} />
+        <Drawer.Screen name="session/[id]" options={{ title: "Session", drawerItemStyle: { display: "none" } }} />
       </Drawer>
     </GestureHandlerRootView>
   );
@@ -304,45 +230,11 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   drawerContent: { paddingVertical: 10 },
   drawer: { backgroundColor: Colors.primary, width: 280 },
-
-  userSection: {
-    padding: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.secondary,
-    marginBottom: 10,
-    flexDirection: "row",
-    alignItems: "center",
-  },
-
-  username: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: Colors.secondary,
-    marginLeft: 10,
-  },
-
+  userSection: { padding: 15, borderBottomWidth: 1, borderBottomColor: Colors.secondary, marginBottom: 10, flexDirection: "row", alignItems: "center" },
+  username: { fontSize: 18, fontWeight: "bold", color: Colors.secondary, marginLeft: 10 },
   sessionSection: { marginTop: 10 },
-
-  sessionTitle: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: Colors.secondary,
-    marginBottom: 5,
-    paddingBottom: 6,
-    width: 120,
-  },
-
+  sessionTitle: { fontSize: 14, fontWeight: "600", color: Colors.secondary, marginBottom: 5, paddingBottom: 6, width: 120 },
   sessionItem: { marginVertical: 4 },
-
-  sessionRole: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: Colors.white,
-  },
-
-  sessionMeta: {
-    fontSize: 12,
-    color: Colors.textGray,
-    marginTop: 2,
-  },
+  sessionRole: { fontSize: 15, fontWeight: "600", color: Colors.white },
+  sessionMeta: { fontSize: 12, color: Colors.textGray, marginTop: 2 },
 });
