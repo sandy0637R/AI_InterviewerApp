@@ -3,7 +3,7 @@ import createSagaMiddleware from "redux-saga";
 import { all } from "redux-saga/effects";
 import authSaga from "./sagas/authSaga";
 import authReducer from "./slices/authSlice";
-
+import sessionReducer from "./slices/sessionSlice";
 const saga = createSagaMiddleware();
 
 function* rootSaga() {
@@ -11,7 +11,8 @@ function* rootSaga() {
 }
 
 export const store = configureStore({
-  reducer: { auth: authReducer },
+  reducer: { auth: authReducer, session: sessionReducer },
+
   middleware: (g) => g({ thunk: false }).concat(saga),
 });
 

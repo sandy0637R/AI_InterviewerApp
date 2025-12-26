@@ -1,5 +1,5 @@
 import { Colors } from "@/constants/colors";
-import AntDesign from '@expo/vector-icons/AntDesign';
+import AntDesign from "@expo/vector-icons/AntDesign";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import {
   DrawerContentScrollView,
@@ -9,7 +9,14 @@ import {
 import { useRouter, useSegments } from "expo-router";
 import Drawer from "expo-router/drawer";
 import React, { useState } from "react";
-import { Alert, Pressable, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  Alert,
+  Pressable,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useSelector } from "react-redux";
 import { deleteSession, getUserSessions } from "../../api/interview";
@@ -43,64 +50,89 @@ function getSessionMeta(session: any, allSessions: any[]) {
 
 function CustomContent(props: any) {
   const { user } = useSelector((s: RootState) => s.auth);
+  const currentSessionId = useSelector(
+    (s: RootState) => s.session.activeSessionId
+  );
+
   const userId = user?._id;
   const [sessions, setSessions] = useState<any[]>([]);
   const [deleteMode, setDeleteMode] = useState(false);
-  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(
+    null
+  );
 
   const router = useRouter();
   const segments = useSegments();
 
- React.useEffect(() => {
-  if (!userId) {
-    setSessions([]);
-    return;
-  }
+  console.log("🔹 Drawer segments:", segments);
 
-  const fetchSessions = async () => {
-    try {
-      const res = await getUserSessions(userId);
-      if (res.success && res.sessions) {
-        setSessions(
-          [...res.sessions].sort(
-            (a, b) =>
-              new Date(b.createdAt).getTime() -
-              new Date(a.createdAt).getTime()
-          )
-        );
-      }
-    } catch (err: any) {
-      console.log("Error fetching sessions:", err.message);
+  React.useEffect(() => {
+    if (!userId) {
+      setSessions([]);
+      return;
     }
-  };
 
-  fetchSessions();
-}, [userId, segments]);
+    const fetchSessions = async () => {
+      try {
+        const res = await getUserSessions(userId);
+        if (res.success && res.sessions) {
+          setSessions(
+            [...res.sessions].sort(
+              (a, b) =>
+                new Date(b.createdAt).getTime() -
+                new Date(a.createdAt).getTime()
+            )
+          );
+        }
+      } catch (err: any) {
+        console.log("Error fetching sessions:", err.message);
+      }
+    };
 
-// 👇 ADD THIS
-React.useEffect(() => {
-  if (segments[1] !== "session") {
-    setDeleteMode(false);
-    setSelectedSessionId(null);
-  }
-}, [segments]);
+    fetchSessions();
+  }, [userId, segments]);
+
+  React.useEffect(() => {
+    if (segments[1] !== "session") {
+      setDeleteMode(false);
+      setSelectedSessionId(null);
+    }
+  }, [segments]);
+
   const handleSessionPress = async (s: any) => {
-    const currentSessionId = segments[1] === "session" ? segments[2] : null;
+    console.log("👉 Session pressed:", s._id);
+    console.log("📍 Current session from redux:", currentSessionId);
 
     if (deleteMode) {
       setSelectedSessionId(s._id);
       Alert.alert("Delete Session?", "This action cannot be undone", [
-        { text: "Cancel", style: "cancel", onPress: () => setSelectedSessionId(null) },
+        {
+          text: "Cancel",
+          style: "cancel",
+          onPress: () => setSelectedSessionId(null),
+        },
         {
           text: "Delete",
           style: "destructive",
           onPress: async () => {
+            console.log("🗑️ Deleting session:", s._id);
+
             await deleteSession(s._id);
-            setSessions((prev) => prev.filter((sess) => sess._id !== s._id));
+            setSessions((prev) =>
+              prev.filter((sess) => sess._id !== s._id)
+            );
             setSelectedSessionId(null);
             setDeleteMode(false);
-            // Navigate to home if deleted session is currently open
+
+            console.log(
+              "🧠 Compare current vs deleted:",
+              currentSessionId,
+              s._id,
+              currentSessionId === s._id
+            );
+
             if (currentSessionId === s._id) {
+              console.log("🚀 Navigating to HOME");
               router.push("/");
             }
           },
@@ -113,23 +145,38 @@ React.useEffect(() => {
     }
   };
 
-  const currentSessionId = segments[1] === "session" ? segments[2] : null;
-
   return (
-    <DrawerContentScrollView {...props} contentContainerStyle={styles.drawerContent}>
-      {/* Outer Pressable: clicking outside the sessions block will disable delete mode */}
-      <Pressable style={{ flex: 1 }} onPress={() => { if (deleteMode) setDeleteMode(false); }}>
+    <DrawerContentScrollView
+      {...props}
+      contentContainerStyle={styles.drawerContent}
+    >
+      <Pressable
+        style={{ flex: 1 }}
+        onPress={() => {
+          if (deleteMode) setDeleteMode(false);
+        }}
+      >
         <View style={styles.userSection}>
-          <FontAwesome name="user-circle-o" size={50} color={Colors.secondary} />
+          <FontAwesome
+            name="user-circle-o"
+            size={50}
+            color={Colors.secondary}
+          />
           <Text style={styles.username}>{user?.name || "User"}</Text>
         </View>
 
         <DrawerItemList {...props} />
 
         {sessions.length > 0 && (
-          // Inner Pressable: captures taps inside sessions area so parent won't close deleteMode
-          <Pressable onPress={() => { /* absorb taps inside sessions area */ }} style={styles.sessionSection}>
-            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginHorizontal: 16 }}>
+          <Pressable onPress={() => {}} style={styles.sessionSection}>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginHorizontal: 16,
+              }}
+            >
               <Text style={styles.sessionTitle}>Your Sessions</Text>
               <TouchableOpacity onPress={() => setDeleteMode(!deleteMode)}>
                 <AntDesign
@@ -146,17 +193,27 @@ React.useEffect(() => {
                 onPress={() => handleSessionPress(s)}
                 style={[
                   styles.sessionItem,
-                  s._id === currentSessionId ? { backgroundColor: Colors.white } : {},
-                  deleteMode && s._id === selectedSessionId ? { backgroundColor: 'red' } : {},
+                  s._id === currentSessionId
+                    ? { backgroundColor: Colors.white }
+                    : {},
+                  deleteMode && s._id === selectedSessionId
+                    ? { backgroundColor: "red" }
+                    : {},
                 ]}
                 label={() => (
-                  <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                    }}
+                  >
                     <View>
                       <Text
                         style={[
                           styles.sessionRole,
                           deleteMode && s._id === selectedSessionId
-                            ? { color: 'white' }
+                            ? { color: "white" }
                             : s.isCompleted
                             ? { color: Colors.white }
                             : { color: Colors.textGray },
@@ -164,7 +221,9 @@ React.useEffect(() => {
                       >
                         {s.role || "Interview"}
                       </Text>
-                      <Text style={styles.sessionMeta}>{getSessionMeta(s, sessions)}</Text>
+                      <Text style={styles.sessionMeta}>
+                        {getSessionMeta(s, sessions)}
+                      </Text>
                     </View>
                     {!s.isCompleted && (
                       <AntDesign
@@ -194,7 +253,7 @@ export default function DrawerLayout() {
         drawerContent={(props) => <CustomContent {...props} />}
         screenOptions={{
           headerShown: true,
-          headerStyle:{backgroundColor:Colors.primary},
+          headerStyle: { backgroundColor: Colors.primary },
           headerTintColor: Colors.white,
           drawerStyle: styles.drawer,
           drawerActiveTintColor: Colors.textGray,
@@ -205,20 +264,32 @@ export default function DrawerLayout() {
         <Drawer.Screen name="index" options={{ title: "Home" }} />
         <Drawer.Screen
           name="profile"
-          options={{ title: "Profile", drawerItemStyle: { display: user ? "flex" : "none" } }}
+          options={{
+            title: "Profile",
+            drawerItemStyle: { display: user ? "flex" : "none" },
+          }}
         />
-        <Drawer.Screen name="select_interview" options={{ title: "Select Interview" }} />
+        <Drawer.Screen
+          name="select_interview"
+          options={{ title: "Select Interview" }}
+        />
         <Drawer.Screen
           name="login"
-          options={{ title: "Login", drawerItemStyle: { display: user ? "none" : "flex" } }}
+          options={{
+            title: "Login",
+            drawerItemStyle: { display: user ? "none" : "flex" },
+          }}
         />
         <Drawer.Screen
           name="register"
-          options={{ title: "Register", drawerItemStyle: { display: user ? "none" : "flex" } }}
+          options={{
+            title: "Register",
+            drawerItemStyle: { display: user ? "none" : "flex" },
+          }}
         />
         <Drawer.Screen
           name="interview_chat"
-          options={{title:"Ai Interview" ,drawerItemStyle: { display: "none" } }}
+          options={{ title: "Ai Interview", drawerItemStyle: { display: "none" } }}
         />
         <Drawer.Screen
           name="session/[id]"
