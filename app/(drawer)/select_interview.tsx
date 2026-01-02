@@ -18,19 +18,29 @@ const SelectInterview: React.FC = () => {
   const router = useRouter();
   const [role, setRole] = useState("");
   const [totalQuestions, setTotalQuestions] = useState("5");
+  const [checkedAuth, setCheckedAuth] = useState(false);
 
   const auth = useSelector((state: RootState) => state.auth);
-  const userId = auth.token
-    ? jwtDecode<TokenPayload>(auth.token).id
-    : undefined;
 
-  // Auto-redirect if not logged in
+  // Decode token safely
+  let userId: string | undefined;
+  try {
+    if (auth.token) {
+      const decoded = jwtDecode<TokenPayload>(auth.token);
+      userId = decoded.id;
+    }
+  } catch (err) {
+    userId = undefined;
+  }
+
+  // Check auth after mount
   useEffect(() => {
     if (!userId) {
-     
       router.replace("/login");
+    } else {
+      setCheckedAuth(true);
     }
-  }, [userId]);
+  }, [userId, router]);
 
   const handleStart = async () => {
     if (!role || !totalQuestions) {
@@ -60,7 +70,6 @@ const SelectInterview: React.FC = () => {
       Alert.alert("Error", res?.message || "Failed to start interview");
 
       if (res?.message?.includes("Free interview already used")) {
-       
         router.replace("/login");
       }
     } catch (error: any) {
@@ -76,6 +85,9 @@ const SelectInterview: React.FC = () => {
       }
     }
   };
+
+  // Wait until auth is checked
+  if (!checkedAuth) return null;
 
   return (
     <View style={styles.container}>

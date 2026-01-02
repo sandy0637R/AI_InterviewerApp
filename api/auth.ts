@@ -2,7 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios, { InternalAxiosRequestConfig } from "axios";
 import { store } from "../redux/store";
 
-const AUTH_BASE = "http://192.168.0.100:5000/auth";
+const AUTH_BASE = "http://192.168.0.102:5000/auth";
 
 // ----------------------------
 // Axios interceptor

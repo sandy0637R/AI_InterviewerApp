@@ -54,6 +54,16 @@ const InterviewChat: React.FC = () => {
         const { session } = res;
         const msgs: Message[] = [];
 
+        // ------------------ ADD GREETING IF NEW SESSION ------------------
+        if (session.questionsAsked === 0 && !session.isCompleted) {
+          msgs.push({
+            id: "greeting",
+            isUser: false,
+            text: `Hello! Welcome to your interview for the role: ${session.role}. Let's start by getting to know you a bit before the questions begin.`,
+          });
+        }
+        // -----------------------------------------------------------------
+
         session.answers.forEach((a) => {
           msgs.push({
             id: `q-${a.questionNumber}`,

@@ -2,8 +2,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import { store } from "../redux/store";
 
-const API_BASE = "http://192.168.0.100:5000/interview";
-const SESSION_BASE = "http://192.168.0.100:5000/sessions";
+const API_BASE = "http://192.168.0.102:5000/interview";
+const SESSION_BASE = "http://192.168.0.102:5000/sessions";
 
 // ----------------------------
 // Axios interceptor
@@ -47,6 +47,10 @@ export interface InterviewSessionResponse {
   session: {
     _id: string;
     role: string;
+
+    // 🔹 INTERVIEW FLOW STAGE (NEW)
+    stage: "greeting" | "introduction" | "interview" | "completed";
+
     questionsAsked: number;
     totalQuestions: number;
     answers: {
@@ -62,7 +66,7 @@ export interface InterviewSessionResponse {
       summary: string;
     } | null;
     isCompleted: boolean;
-    status: "in_progress" | "completed"; // ✅ added
+    status: "in_progress" | "completed";
     createdAt: string;
     updatedAt: string;
   };
@@ -81,7 +85,9 @@ export const nextQuestion = async (payload: NextQuestionPayload) => {
   return data;
 };
 
-export const resumeInterview = async (payload: ResumeInterviewPayload): Promise<InterviewSessionResponse> => {
+export const resumeInterview = async (
+  payload: ResumeInterviewPayload
+): Promise<InterviewSessionResponse> => {
   const { data } = await axios.post(`${API_BASE}/resume`, payload);
   return data;
 };
