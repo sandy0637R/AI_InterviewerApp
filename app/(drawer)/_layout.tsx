@@ -216,6 +216,7 @@ export default function DrawerLayout() {
       >
         <Drawer.Screen name="index" options={{ title: "Home" }} />
         <Drawer.Screen name="profile" options={{ title: "Profile", drawerItemStyle: { display: user ? "flex" : "none" } }} />
+        <Drawer.Screen name="analytics_screen" options={{ title: "AnalyticsScreen", drawerItemStyle: { display: user ? "flex" : "none" } }} />
         <Drawer.Screen name="select_interview" options={{ title: "Select Interview" }} />
         <Drawer.Screen name="login" options={{ title: "Login", drawerItemStyle: { display: user ? "none" : "flex" } }} />
         <Drawer.Screen name="register" options={{ title: "Register", drawerItemStyle: { display: user ? "none" : "flex" } }} />
