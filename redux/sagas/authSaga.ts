@@ -1,5 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { call, put, takeLatest } from "redux-saga/effects";
+import { call, put, takeLatest, race, delay } from "redux-saga/effects";
 import { loginApi, profileApi, registerApi } from "../../api/auth";
 import {
   loginFailure,
@@ -12,6 +12,7 @@ import {
   registerFailure,
   registerRequest,
   registerSuccess,
+  setInitialized,
   User,
 } from "../slices/authSlice";
 
@@ -27,45 +28,82 @@ function* loadStoredAuth(): Generator<any, void, any> {
     }
   } catch (err) {
     console.log("Error loading stored auth:", err);
+  } finally {
+    // Always mark as initialized, even if no user found
+    yield put(setInitialized(true));
   }
 }
 
+// ---------- LOGIN ----------
 // ---------- LOGIN ----------
 function* handleLogin(action: ReturnType<typeof loginRequest>): Generator<any, void, any> {
   try {
     yield call([AsyncStorage, "removeItem"], "token");
     yield call([AsyncStorage, "removeItem"], "user");
 
-    const res: { data: { user: User; token: string } } = yield call(
-      loginApi,
-      action.payload
-    );
+    // Race between API call and a strict timeout (e.g., 10s)
+    // This safeguards against Axios or Network stack hanging indefinitely.
+    const { res, timeout } = yield race({
+      res: call(loginApi, action.payload),
+      timeout: delay(15000),
+    });
 
-    yield call([AsyncStorage, "setItem"], "token", res.data.token);
-    yield call([AsyncStorage, "setItem"], "user", JSON.stringify(res.data.user));
+    if (timeout) {
+      throw new Error("Server took too long to respond options. Check your connection.");
+    }
 
-    yield put(loginSuccess({ user: res.data.user, token: res.data.token }));
+    // Safely assert response structure
+    const data = (res as { data: { user: User; token: string } }).data;
+
+    yield call([AsyncStorage, "setItem"], "token", data.token);
+    yield call([AsyncStorage, "setItem"], "user", JSON.stringify(data.user));
+
+    yield put(loginSuccess({ user: data.user, token: data.token }));
   } catch (err: any) {
-    yield put(loginFailure(err?.response?.data?.message || "Invalid credentials"));
+    const message =
+      err?.response?.data?.message || err.message || "Invalid credentials or Server Error";
+    yield put(loginFailure(message));
   }
 }
 
 // ---------- REGISTER ----------
+// ---------- REGISTER ----------
 function* handleRegister(action: ReturnType<typeof registerRequest>): Generator<any, void, any> {
   try {
-    yield call(registerApi, action.payload);
-    yield put(registerSuccess()); // ✅ now triggers UI
+    const { timeout } = yield race({
+      res: call(registerApi, action.payload),
+      timeout: delay(15000),
+    });
+
+    if (timeout) {
+      throw new Error("Registration timed out - Server unreachable");
+    }
+
+    yield put(registerSuccess());
   } catch (err: any) {
-    yield put(registerFailure(err?.response?.data?.message || "Error registering"));
+    const message =
+      err?.response?.data?.message || err.message || "Error registering";
+    yield put(registerFailure(message));
   }
 }
 
 // ---------- PROFILE ----------
 function* handleProfile(): Generator<any, void, any> {
   try {
-    const res: { data: { user: User } } = yield call(profileApi);
-    yield put(profileSuccess(res.data.user));
-    yield call([AsyncStorage, "setItem"], "user", JSON.stringify(res.data.user));
+    const { res, timeout } = yield race({
+      res: call(profileApi),
+      timeout: delay(5000), // Profile can be faster
+    });
+
+    if (timeout || !res) {
+      // If it times out or fails silently, we just fail profile load, 
+      // usually doesn't block UI as much as login/register
+      throw new Error("Profile load timeout");
+    }
+
+    const data = (res as { data: { user: User } }).data;
+    yield put(profileSuccess(data.user));
+    yield call([AsyncStorage, "setItem"], "user", JSON.stringify(data.user));
   } catch {
     yield put(profileFailure());
   }

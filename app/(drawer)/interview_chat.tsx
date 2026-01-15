@@ -1,7 +1,9 @@
 import Mybutton from "@/components/Mybutton";
 import { Colors } from "@/constants/colors";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, router } from "expo-router";
 import React, { useEffect, useState } from "react";
+import VoiceChatModel from "@/components/VoiceChatModel";
+
 import {
   Alert,
   FlatList,
@@ -26,6 +28,9 @@ const InterviewChat: React.FC = () => {
     sessionId?: string;
     id?: string;
   }>();
+  // ... existing code ...
+  const flatListRef = React.useRef<FlatList>(null);
+  // ... existing code ...
 
   const activeSessionId = sessionId ?? id;
 
@@ -34,6 +39,8 @@ const InterviewChat: React.FC = () => {
   const [isCompleted, setIsCompleted] = useState(false);
   const [currentQNumber, setCurrentQNumber] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
+
+  const [playTrigger, setPlayTrigger] = useState(0);
 
   const canAnswer = !isCompleted;
 
@@ -109,9 +116,15 @@ ${f.summary}`,
         }
 
         setMessages(msgs);
-      } catch (err) {
+      } catch (err: any) {
         console.error("Resume error:", err);
-        Alert.alert("Error", "Unable to resume interview");
+        if (err.response?.status === 404) {
+          Alert.alert("Session Expired", "This interview session is no longer valid. Please start a new one.", [
+            { text: "OK", onPress: () => router.replace("/(drawer)") }
+          ]);
+        } else {
+          Alert.alert("Error", "Unable to resume interview");
+        }
       } finally {
         setIsLoading(false);
       }
@@ -188,6 +201,70 @@ ${f.summary}`,
 
     setAnswer("");
   };
+  const handleSendVoice = async (spokenText: string) => {
+    setMessages((prev) => [
+      ...prev,
+      { id: `user-${Date.now()}`, text: spokenText, isUser: true },
+    ]);
+
+    try {
+      const res = await nextQuestion({
+        sessionId: activeSessionId!,
+        answer: spokenText,
+      });
+
+      // 1. Success + Completed + Feedback
+      if (res.success && res.completed && res.feedback) {
+        const f = res.feedback;
+
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: "feedback",
+            isUser: false,
+            text: `Rating: ${f.rating}/10
+
+Plus Points:
+${f.plusPoints.length ? f.plusPoints.map((p: string) => `• ${p}`).join("\n") : "• None"}
+
+Areas to Improve:
+${f.improvements.map((p: string) => `• ${p}`).join("\n")}
+
+Summary:
+${f.summary}`,
+          },
+        ]);
+        setIsCompleted(true);
+      }
+      // 2. Success + Next Question
+      else if (res.success && res.question) {
+        setMessages((prev) => [
+          ...prev,
+          { id: `q-${res.questionNumber}`, text: res.question, isUser: false },
+        ]);
+        setCurrentQNumber(res.questionNumber);
+      }
+      // 3. Ask Again (Irrelevant Answer)
+      else if (res.askAgain) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `repeat-${Date.now()}`,
+            text: res.message, // "Your answer doesn't match..."
+            isUser: false,
+          },
+        ]);
+      }
+      // 4. Repeat Question (User asked "Can you repeat?")
+      else if (res.repeat) {
+        // REPLAY LOGIC: Do NOT render a new bubble. Just force speech replay.
+        setPlayTrigger(prev => prev + 1);
+      }
+    } catch {
+      Alert.alert("Error", "Server error");
+    }
+  };
+
 
   if (isLoading) {
     return (
@@ -205,8 +282,11 @@ ${f.summary}`,
     >
       <View style={styles.container}>
         <FlatList
+          ref={flatListRef}
           data={messages}
           keyExtractor={(item) => item.id}
+          onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+          onLayout={() => flatListRef.current?.scrollToEnd({ animated: true })}
           renderItem={({ item }) => (
             <View
               style={[
@@ -215,6 +295,20 @@ ${f.summary}`,
                 item.id === "feedback" && styles.feedbackMessage,
               ]}
             >
+              {item.id === "feedback" && (
+                <Text style={{
+                  color: "#FFD700",
+                  fontSize: 22,
+                  fontWeight: "bold",
+                  marginBottom: 16,
+                  textAlign: "center",
+                  textShadowColor: "rgba(255, 215, 0, 0.3)",
+                  textShadowOffset: { width: 0, height: 0 },
+                  textShadowRadius: 10
+                }}>
+                  🎉 PERFORMANCE RESULT
+                </Text>
+              )}
               <Text
                 style={[
                   styles.text,
@@ -241,6 +335,13 @@ ${f.summary}`,
               textAlignVertical="top"
             />
             <Mybutton title={"Send"} onPress={handleSend} />
+            <VoiceChatModel
+              disabled={!canAnswer}
+              onSend={handleSendVoice}
+              currentQuestion={messages.slice().reverse().find(m => !m.isUser)?.text || ""}
+              aiName="Sarah"
+              playTrigger={playTrigger}
+            />
           </View>
         )}
       </View>
@@ -253,40 +354,86 @@ export default InterviewChat;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 10,
-    paddingBottom: 100,
     backgroundColor: Colors.background,
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 20,
   },
-  center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  text: { color: Colors.white, fontSize: 17, fontWeight: "semibold" },
-  message: { marginVertical: 6, padding: 10, borderRadius: 6 },
-  user: { alignSelf: "flex-end", backgroundColor: Colors.secondary },
-  ai: { alignSelf: "flex-start" },
-  inputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  input: {
+  center: {
     flex: 1,
-    borderWidth: 1,
-    borderColor: "#585252ff",
-    backgroundColor: Colors.primary,
-    color: Colors.white,
-    borderRadius: 20,
-    padding: 15,
-    marginRight: 5,
-    minHeight: 40,
-    maxHeight: 120,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: Colors.background
   },
-  feedbackMessage: {
+
+  // Bubbles
+  message: {
+    marginVertical: 8,
+    padding: 16,
+    borderRadius: 20,
+    maxWidth: "85%",
+  },
+  user: {
+    alignSelf: "flex-end",
+    backgroundColor: "#2563EB", // A nice professional blue for user
+    borderBottomRightRadius: 4,
+  },
+  ai: {
+    alignSelf: "flex-start",
     backgroundColor: Colors.primary,
-    alignSelf: "center",
-    borderRadius: 10,
-    padding: 12,
+    borderBottomLeftRadius: 4,
+  },
+  text: {
+    color: Colors.white,
+    fontSize: 16,
+    lineHeight: 24,
+  },
+
+  // Achievement Feedback
+  feedbackMessage: {
+    alignSelf: "stretch", // Full width
+    backgroundColor: "#1c1c1c",
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: "#FFD700", // Gold border
+    padding: 24,
+    marginVertical: 24,
+    shadowColor: "#FFD700",
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+    elevation: 6, // Android glow
+    alignItems: "center",
   },
   feedbackText: {
     color: Colors.white,
-    fontWeight: "bold",
+    fontSize: 16,
+    lineHeight: 24,
+    textAlign: "left", // Keep content readable
+    width: "100%",
+  },
+
+  // Input Area
+  inputContainer: {
+    flexDirection: "row",
+    alignItems: "flex-end", // Align bottom for multiline
+    paddingVertical: 10,
+    marginBottom: 70,
+    backgroundColor: Colors.background, // Match bg to hide scrolling content behind
+  },
+  input: {
+    flex: 1,
+    minHeight: 50,
+    maxHeight: 120,
+    backgroundColor: Colors.primary,
+    borderRadius: 25,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    color: Colors.white,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 12,
+    marginRight: 10,
     fontSize: 16,
   },
 });

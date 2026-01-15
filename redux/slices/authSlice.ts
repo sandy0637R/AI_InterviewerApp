@@ -12,7 +12,8 @@ interface AuthState {
   token: string | null;
   loading: boolean;
   error: string | null;
-  registerSuccess: boolean; // ✅ ADDED
+  registerSuccess: boolean;
+  initialized: boolean; // ✅ ADDED
 }
 
 const initialState: AuthState = {
@@ -20,7 +21,8 @@ const initialState: AuthState = {
   token: null,
   loading: false,
   error: null,
-  registerSuccess: false, // ✅ ADDED
+  registerSuccess: false,
+  initialized: false, // ✅ ADDED
 };
 
 const authSlice = createSlice({
@@ -82,6 +84,11 @@ const authSlice = createSlice({
       state.error = null;
       state.registerSuccess = false;
     },
+
+    // ---------- INITIALIZATION ----------
+    setInitialized: (state, action: PayloadAction<boolean>) => {
+      state.initialized = action.payload;
+    },
   },
 });
 
@@ -96,6 +103,7 @@ export const {
   profileSuccess,
   profileFailure,
   logout,
+  setInitialized,
 } = authSlice.actions;
 
 export default authSlice.reducer;

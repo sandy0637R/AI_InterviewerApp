@@ -1,18 +1,23 @@
+// Fixed import
+// import { hm } ... removed
 import { getUserSessions } from "@/api/interview";
 import { RootState } from "@/redux/store";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useFocusEffect } from "expo-router";
+import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import {
-    ActivityIndicator,
-    Animated,
-    Dimensions,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Animated,
+  Dimensions,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { LineChart } from "react-native-chart-kit";
 import { useSelector } from "react-redux";
+import { Colors } from "@/constants/colors";
+import { Ionicons } from "@expo/vector-icons";
 
 type Session = {
   _id: string;
@@ -36,36 +41,42 @@ export default function AnalyticsScreen() {
   const [weekOffset, setWeekOffset] = useState(0);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const translateAnim = useRef(new Animated.Value(30)).current;
-  const progressAnim = useRef(new Animated.Value(0)).current;
 
-  useEffect(() => {
-    if (!userId) return;
+  /* 
+     Use useFocusEffect to auto-refresh data when screen is focused. 
+     This ensures sync after adding/deleting sessions.
+  */
 
-    (async () => {
-      try {
-        const data = await getUserSessions(userId);
-        setSessions(Array.isArray(data) ? data : data.sessions || []);
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [userId]);
+  useFocusEffect(
+    useCallback(() => {
+      if (!userId) return;
+
+      let isActive = true;
+
+      (async () => {
+        try {
+          const data = await getUserSessions(userId);
+          if (isActive) {
+            setSessions(Array.isArray(data) ? data : data.sessions || []);
+          }
+        } finally {
+          if (isActive) setLoading(false);
+        }
+      })();
+
+      return () => {
+        isActive = false;
+      };
+    }, [userId])
+  );
 
   useEffect(() => {
     if (!loading) {
-      Animated.parallel([
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 600,
-          useNativeDriver: true,
-        }),
-        Animated.timing(translateAnim, {
-          toValue: 0,
-          duration: 600,
-          useNativeDriver: true,
-        }),
-      ]).start();
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }).start();
     }
   }, [loading]);
 
@@ -84,14 +95,6 @@ export default function AnalyticsScreen() {
   const completionRate = sessions.length
     ? Math.round((completed.length / sessions.length) * 100)
     : 0;
-
-  useEffect(() => {
-    Animated.timing(progressAnim, {
-      toValue: completionRate,
-      duration: 800,
-      useNativeDriver: false,
-    }).start();
-  }, [completionRate]);
 
   const weeklyRatings = useMemo(() => {
     const start = new Date();
@@ -117,248 +120,289 @@ export default function AnalyticsScreen() {
     return DAYS.map((_, i) =>
       map[i]
         ? Number(
-            (
-              map[i].reduce((a, b) => a + b, 0) / map[i].length
-            ).toFixed(1)
-          )
+          (
+            map[i].reduce((a, b) => a + b, 0) / map[i].length
+          ).toFixed(1)
+        )
         : 0
     );
   }, [sessions, weekOffset]);
 
   if (loading) {
-    return <ActivityIndicator style={{ marginTop: 40 }} />;
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={Colors.white} />
+      </View>
+    );
   }
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      <Animated.View
-        style={{
-          opacity: fadeAnim,
-          transform: [{ translateY: translateAnim }],
-        }}
-      >
-        <Text style={styles.title}>Interview Analytics</Text>
-        <Text style={styles.subtitle}>
-          Track progress • Build confidence • Improve faster
-        </Text>
+      <Animated.View style={{ opacity: fadeAnim, paddingBottom: 40 }}>
 
-        <View style={styles.row}>
-          <StatCard label="Total" value={sessions.length} />
-          <StatCard label="Completed" value={completed.length} />
-        </View>
-
-        <View style={styles.row}>
-          <StatCard label="In Progress" value={inProgress.length} />
-          <StatCard label="Avg Rating" value={avgRating} />
-        </View>
-
-        <View style={styles.chartHeader}>
-          <Text style={styles.sectionTitle}>Weekly Rating Trend</Text>
-          <View style={styles.weekNav}>
-            <TouchableOpacity onPress={() => setWeekOffset((p) => p + 1)}>
-              <Text style={styles.navBtn}>◀</Text>
-            </TouchableOpacity>
-            <Text style={styles.weekText}>
-              {weekOffset === 0 ? "This Week" : `${weekOffset} Week Ago`}
-            </Text>
-            <TouchableOpacity
-              disabled={weekOffset === 0}
-              onPress={() => setWeekOffset((p) => p - 1)}
-            >
-              <Text
-                style={[
-                  styles.navBtn,
-                  weekOffset === 0 && { opacity: 0.3 },
-                ]}
-              >
-                ▶
-              </Text>
-            </TouchableOpacity>
+        <View style={styles.header}>
+          <Text style={styles.title}>Analytics</Text>
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>BETA</Text>
           </View>
         </View>
+        <Text style={styles.subtitle}>Insights designed to help you grow.</Text>
 
-        <View style={styles.chartWrapper}>
+        {/* STATS GRID */}
+        <View style={styles.grid}>
+          <StatCard label="Total Sessions" value={sessions.length.toString()} icon="layers-outline" />
+          <StatCard label="Completed" value={completed.length.toString()} icon="checkmark-circle-outline" highlight />
+        </View>
+
+        <View style={styles.grid}>
+          <StatCard label="Avg. Rating" value={avgRating} icon="star-outline" />
+          <StatCard label="In Progress" value={inProgress.length.toString()} icon="time-outline" />
+        </View>
+
+        {/* CHART SECTION */}
+        <View style={styles.chartContainer}>
+          <View style={styles.chartHeader}>
+            <Text style={styles.sectionTitle}>Performance Trend</Text>
+            <View style={styles.weekNav}>
+              <TouchableOpacity onPress={() => setWeekOffset((p) => p + 1)}>
+                <Ionicons name="chevron-back" size={20} color={Colors.white} />
+              </TouchableOpacity>
+              <Text style={styles.weekText}>
+                {weekOffset === 0 ? "This Week" : `${weekOffset}w Ago`}
+              </Text>
+              <TouchableOpacity
+                disabled={weekOffset === 0}
+                onPress={() => setWeekOffset((p) => p - 1)}
+              >
+                <Ionicons name="chevron-forward" size={20} color={weekOffset === 0 ? Colors.grey3 : Colors.white} />
+              </TouchableOpacity>
+            </View>
+          </View>
+
           <LineChart
             data={{
               labels: DAYS,
               datasets: [{ data: weeklyRatings }],
             }}
-            width={screenWidth - 56}
-            height={240}
+            width={screenWidth - 64} // Padding adjustments
+            height={220}
             fromZero
             bezier
+            yAxisInterval={1}
             chartConfig={chartConfig}
-            style={{ borderRadius: 8 }}
+            style={{ borderRadius: 16 }}
           />
         </View>
 
-        <Text style={styles.sectionTitle}>Completion Momentum</Text>
+        {/* PROGRESS CARD */}
         <View style={styles.progressCard}>
-          <View style={styles.progressHeader}>
-            <Text style={styles.progressText}>Completion Rate</Text>
-            <Text style={styles.progressPercent}>{completionRate}%</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.progressTitle}>Completion Rate</Text>
+            <Text style={styles.progressSubtitle}>Keep finishing interviews!</Text>
           </View>
-          <View style={styles.progressBarBg}>
-            <Animated.View
-              style={[
-                styles.progressBarFill,
-                {
-                  width: progressAnim.interpolate({
-                    inputRange: [0, 100],
-                    outputRange: ["0%", "100%"],
-                  }),
-                },
-              ]}
-            />
+          <View style={styles.progressCircle}>
+            <Text style={styles.progressValue}>{completionRate}%</Text>
           </View>
         </View>
 
         <Text style={styles.sectionTitle}>AI Insights</Text>
-        <Insight text="Consistency improves dramatically after multiple attempts." />
-        <Insight text="Finishing interviews strongly impacts overall ratings." />
-        <Insight text="Repeating the same role increases confidence and flow." />
+        <Insight text="Consistently completing sessions increases your AI rating accuracy." icon="bulb-outline" />
+        <Insight text="Try practicing different roles to broaden your communication skills." icon="trending-up-outline" />
+
       </Animated.View>
     </ScrollView>
   );
 }
 
-function StatCard({ label, value }: { label: string; value: any }) {
+function StatCard({ label, value, icon, highlight }: { label: string; value: string; icon: any; highlight?: boolean }) {
   return (
-    <View style={styles.card}>
-      <Text style={styles.cardValue}>{value}</Text>
-      <Text style={styles.cardLabel}>{label}</Text>
+    <View style={[styles.card, highlight && styles.highlightCard]}>
+      <View style={styles.cardHeader}>
+        <Ionicons name={icon} size={20} color={highlight ? Colors.background : Colors.textGray} />
+      </View>
+      <Text style={[styles.cardValue, highlight && { color: Colors.background }]}>{value}</Text>
+      <Text style={[styles.cardLabel, highlight && { color: Colors.background }]}>{label}</Text>
     </View>
   );
 }
 
-function Insight({ text }: { text: string }) {
+function Insight({ text, icon }: { text: string, icon: any }) {
   return (
     <View style={styles.insight}>
-      <Text style={styles.insightText}>• {text}</Text>
+      <Ionicons name={icon} size={24} color="#FFD700" style={{ marginRight: 12 }} />
+      <Text style={styles.insightText}>{text}</Text>
     </View>
   );
 }
 
 const chartConfig = {
-  backgroundGradientFrom: "#ffffff",
-  backgroundGradientTo: "#ffffff",
+  backgroundGradientFrom: Colors.primary,
+  backgroundGradientTo: Colors.primary,
   decimalPlaces: 1,
-  color: () => "#6366f1",
-  labelColor: () => "#374151",
+  color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+  labelColor: (opacity = 1) => `rgba(156, 163, 175, ${opacity})`,
   propsForDots: {
-    r: "5",
+    r: "4",
     strokeWidth: "2",
-    stroke: "#6366f1",
+    stroke: Colors.background,
   },
+  fillShadowGradientFrom: Colors.white,
+  fillShadowGradientTo: Colors.primary,
 };
 
 const styles = StyleSheet.create({
   container: {
-    padding: 18,
-    backgroundColor: "#f8fafc",
+    flex: 1,
+    backgroundColor: Colors.background,
+    padding: 16,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 20
   },
   title: {
-    fontSize: 28,
-    fontWeight: "900",
-    letterSpacing: 0.3,
+    fontSize: 32,
+    fontWeight: "bold",
+    color: Colors.white,
+  },
+  badge: {
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginLeft: 10,
+    borderWidth: 1,
+    borderColor: Colors.border
+  },
+  badgeText: {
+    color: Colors.textGray,
+    fontSize: 10,
+    fontWeight: 'bold'
   },
   subtitle: {
-    color: "#64748b",
-    marginBottom: 28,
+    color: Colors.textGray,
+    marginBottom: 30,
     marginTop: 4,
+    fontSize: 16,
   },
-  row: {
+  grid: {
     flexDirection: "row",
-    gap: 14,
-    marginBottom: 14,
+    gap: 12,
+    marginBottom: 12,
   },
   card: {
     flex: 1,
-    padding: 20,
-    borderRadius: 8,
-    backgroundColor: "#ffffff",
-    elevation: 3,
+    backgroundColor: Colors.primary,
+    padding: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  highlightCard: {
+    backgroundColor: Colors.white,
+    borderColor: Colors.white,
+  },
+  cardHeader: {
+    marginBottom: 10,
+    alignSelf: 'flex-start'
   },
   cardValue: {
-    fontSize: 26,
-    fontWeight: "900",
-    color: "#0f172a",
+    fontSize: 24,
+    fontWeight: "bold",
+    color: Colors.white,
   },
   cardLabel: {
-    color: "#64748b",
-    marginTop: 6,
-    fontSize: 13,
+    color: Colors.textGray,
+    marginTop: 4,
+    fontSize: 12,
+    fontWeight: "600"
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: "800",
-    marginTop: 32,
-    marginBottom: 14,
-    color: "#0f172a",
+    fontWeight: "700",
+    color: Colors.white,
+  },
+  chartContainer: {
+    backgroundColor: Colors.primary,
+    padding: 16,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    marginVertical: 20
   },
   chartHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    marginBottom: 20,
   },
   weekNav: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
-  },
-  navBtn: {
-    fontSize: 18,
-    fontWeight: "800",
-    color: "#6366f1",
+    gap: 12,
+    backgroundColor: Colors.background,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12
   },
   weekText: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#475569",
-  },
-  chartWrapper: {
-    backgroundColor: "#ffffff",
-    padding: 16,
-    borderRadius: 8,
-    elevation: 3,
+    fontSize: 12,
+    color: Colors.white,
+    fontWeight: '600'
   },
   progressCard: {
-    backgroundColor: "#ffffff",
-    padding: 18,
-    borderRadius: 8,
-    elevation: 3,
+    backgroundColor: "#2563EB", // Brand Blue
+    padding: 24,
+    borderRadius: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 30,
+    shadowColor: "#2563EB",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 8,
   },
-  progressHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 12,
+  progressTitle: {
+    color: Colors.white,
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 4
   },
-  progressText: {
-    fontWeight: "600",
-    color: "#475569",
+  progressSubtitle: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 12
   },
-  progressPercent: {
-    fontWeight: "800",
-    color: "#0f172a",
+  progressCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.4)',
   },
-  progressBarBg: {
-    height: 12,
-    borderRadius: 8,
-    backgroundColor: "#e5e7eb",
-    overflow: "hidden",
-  },
-  progressBarFill: {
-    height: "100%",
-    backgroundColor: "#6366f1",
+  progressValue: {
+    color: Colors.white,
+    fontWeight: 'bold',
+    fontSize: 16
   },
   insight: {
-    backgroundColor: "#eef2ff",
+    backgroundColor: Colors.primary,
     padding: 16,
-    borderRadius: 8,
-    marginBottom: 10,
+    borderRadius: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    flexDirection: 'row',
+    alignItems: 'center'
   },
   insightText: {
-    color: "#1e3a8a",
+    color: Colors.white,
     fontSize: 14,
+    lineHeight: 20,
+    flex: 1
   },
 });

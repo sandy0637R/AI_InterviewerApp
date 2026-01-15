@@ -2,6 +2,7 @@ import { Colors } from "@/constants/colors";
 import { setActiveSessionId } from "@/redux/slices/sessionSlice";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
+import { Ionicons } from "@expo/vector-icons";
 import {
   DrawerContentScrollView,
   DrawerItem,
@@ -18,7 +19,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
+
 import { useDispatch, useSelector } from "react-redux";
 import { deleteSession, getUserSessions } from "../../api/interview";
 import { RootState } from "../../redux/store";
@@ -96,7 +97,7 @@ function CustomContent(props: any) {
     if (segments[1] !== "session") {
       setDeleteMode(false);
       setSelectedSessionId(null);
-       if (currentSessionId) dispatch(setActiveSessionId(null))
+      if (currentSessionId) dispatch(setActiveSessionId(null));
     }
   }, [segments]);
 
@@ -135,62 +136,63 @@ function CustomContent(props: any) {
           if (deleteMode) setDeleteMode(false);
         }}
       >
+        {/* User Profile Section */}
         <View style={styles.userSection}>
-          <FontAwesome name="user-circle-o" size={50} color={Colors.secondary} />
-          <Text style={styles.username}>{user?.name || "User"}</Text>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>{user?.name?.[0]?.toUpperCase() || "U"}</Text>
+          </View>
+          <View style={{ marginLeft: 12 }}>
+            <Text style={styles.welcomeText}>Welcome,</Text>
+            <Text style={styles.username}>{user?.name || "Guest"}</Text>
+          </View>
         </View>
 
-        <DrawerItemList {...props} />
+        <View style={styles.menuItems}>
+          <DrawerItemList {...props} />
+        </View>
 
+        {/* Sessions List */}
         {sessions.length > 0 && (
-          <Pressable style={styles.sessionSection}>
-            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginHorizontal: 16 }}>
-              <Text style={styles.sessionTitle}>Your Sessions</Text>
-              <TouchableOpacity onPress={() => setDeleteMode(!deleteMode)}>
-                <AntDesign name="delete" size={18} color={deleteMode ? "red" : Colors.secondary} />
+          <View style={styles.sessionSection}>
+            <View style={styles.sessionHeader}>
+              <Text style={styles.sessionTitle}>RECENT SESSIONS</Text>
+              <TouchableOpacity onPress={() => setDeleteMode(!deleteMode)} hitSlop={10}>
+                <Ionicons name="trash-outline" size={20} color={deleteMode ? "red" : Colors.textGray} />
               </TouchableOpacity>
             </View>
 
             {sessions.map((s) => (
-  <DrawerItem
-    key={s._id}
-    onPress={() => handleSessionPress(s)}
-    style={[
-      styles.sessionItem,
-      s._id === currentSessionId ? { backgroundColor: Colors.secondary } : {},
-      deleteMode && s._id === selectedSessionId ? { backgroundColor: "red" } : {},
-    ]}
-    label={() => (
-      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-        <View>
-          <Text
-            style={[
-              styles.sessionRole,
-              s._id === currentSessionId
-                ? { color: Colors.white } // active session text
-                : deleteMode && s._id === selectedSessionId
-                ? { color: "white" } // delete mode text
-                : s.isCompleted
-                ? { color: Colors.white }
-                : { color: Colors.textGray },
-            ]}
-          >
-            {s.role || "Interview"}
-          </Text>
-          <Text  style={[
-    styles.sessionMeta,
-    s._id === currentSessionId ? { color: Colors.white } : {},
-  ]}>{getSessionMeta(s, sessions)}</Text>
-        </View>
-        {!s.isCompleted && (
-          <AntDesign name="exclamation-circle" size={15} color="red" style={{ marginLeft: 8 }} />
-        )}
-      </View>
-    )}
-  />
-))}
-
-          </Pressable>
+              <DrawerItem
+                key={s._id}
+                onPress={() => handleSessionPress(s)}
+                style={[
+                  styles.sessionItem,
+                  s._id === currentSessionId && styles.sessionItemActive,
+                  deleteMode && s._id === selectedSessionId && { backgroundColor: "rgba(255,0,0,0.2)" },
+                ]}
+                label={() => (
+                  <View style={styles.sessionLabelContainer}>
+                    <View style={{ flex: 1 }}>
+                      <Text
+                        numberOfLines={1}
+                        style={[
+                          styles.sessionRole,
+                          // Use textGray instead of gray2 fix
+                          s._id === currentSessionId ? { color: Colors.white } : { color: Colors.textGray },
+                        ]}
+                      >
+                        {s.role || "Interview"}
+                      </Text>
+                      <Text style={styles.sessionMeta}>{getSessionMeta(s, sessions)}</Text>
+                    </View>
+                    {!s.isCompleted && (
+                      <View style={styles.incompleteDot} />
+                    )}
+                  </View>
+                )}
+              />
+            ))}
+          </View>
         )}
       </Pressable>
     </DrawerContentScrollView>
@@ -201,41 +203,130 @@ export default function DrawerLayout() {
   const { user } = useSelector((s: RootState) => s.auth);
 
   return (
-    <GestureHandlerRootView style={styles.container}>
-      <Drawer
-        drawerContent={(props) => <CustomContent {...props} />}
-        screenOptions={{
-          headerShown: true,
-          headerStyle: { backgroundColor: Colors.primary },
-          headerTintColor: Colors.white,
-          drawerStyle: styles.drawer,
-          drawerActiveTintColor: Colors.textGray,
-          drawerInactiveTintColor: Colors.white,
-          drawerLabelStyle: { fontSize: 16, fontWeight: "500" },
-        }}
-      >
-        <Drawer.Screen name="index" options={{ title: "Home" }} />
-        <Drawer.Screen name="profile" options={{ title: "Profile", drawerItemStyle: { display: user ? "flex" : "none" } }} />
-        <Drawer.Screen name="analytics_screen" options={{ title: "AnalyticsScreen", drawerItemStyle: { display: user ? "flex" : "none" } }} />
-        <Drawer.Screen name="select_interview" options={{ title: "Select Interview" }} />
-        <Drawer.Screen name="login" options={{ title: "Login", drawerItemStyle: { display: user ? "none" : "flex" } }} />
-        <Drawer.Screen name="register" options={{ title: "Register", drawerItemStyle: { display: user ? "none" : "flex" } }} />
-        <Drawer.Screen name="interview_chat" options={{ title: "Ai Interview", drawerItemStyle: { display: "none" } }} />
-        <Drawer.Screen name="session/[id]" options={{ title: "Session", drawerItemStyle: { display: "none" } }} />
-      </Drawer>
-    </GestureHandlerRootView>
+    <Drawer
+      drawerContent={(props) => <CustomContent {...props} />}
+      screenOptions={{
+        headerShown: true,
+        headerTitle: "",
+        headerShadowVisible: false,
+        headerStyle: {
+          backgroundColor: Colors.background,
+          elevation: 0, // Android shadow removal
+          shadowOpacity: 0, // iOS shadow removal
+          borderBottomWidth: 0,
+        },
+        headerTintColor: Colors.white,
+        drawerStyle: styles.drawer,
+        drawerActiveTintColor: Colors.textGray,
+        drawerActiveBackgroundColor: Colors.primary,
+        drawerInactiveTintColor: Colors.white,
+        drawerLabelStyle: { fontSize: 16, fontWeight: "500" },
+      }}
+    >
+      <Drawer.Screen name="index" options={{ title: "Home" }} />
+      <Drawer.Screen name="profile" options={{ title: "Profile", drawerItemStyle: { display: user ? "flex" : "none" } }} />
+      <Drawer.Screen name="analytics_screen" options={{ title: "AnalyticsScreen", drawerItemStyle: { display: user ? "flex" : "none" } }} />
+      <Drawer.Screen name="select_interview" options={{ title: "Select Interview" }} />
+      <Drawer.Screen name="login" options={{ title: "Login", drawerItemStyle: { display: user ? "none" : "flex" } }} />
+      <Drawer.Screen name="register" options={{ title: "Register", drawerItemStyle: { display: user ? "none" : "flex" } }} />
+      <Drawer.Screen name="interview_chat" options={{ title: "Ai Interview", drawerItemStyle: { display: "none" } }} />
+      <Drawer.Screen name="session/[id]" options={{ title: "Session", drawerItemStyle: { display: "none" } }} />
+    </Drawer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  drawerContent: { paddingVertical: 10 },
-  drawer: { backgroundColor: Colors.primary, width: 280 },
-  userSection: { padding: 15, borderBottomWidth: 1, borderBottomColor: Colors.secondary, marginBottom: 10, flexDirection: "row", alignItems: "center" },
-  username: { fontSize: 18, fontWeight: "bold", color: Colors.secondary, marginLeft: 10 },
-  sessionSection: { marginTop: 10 },
-  sessionTitle: { fontSize: 14, fontWeight: "600", color: Colors.secondary, marginBottom: 5, paddingBottom: 6, width: 120 },
-  sessionItem: { marginVertical: 4 },
-  sessionRole: { fontSize: 15, fontWeight: "600", color: Colors.white },
-  sessionMeta: { fontSize: 12, color: Colors.textGray, marginTop: 2 },
+  drawerContent: {
+    flex: 1,
+    backgroundColor: Colors.background,
+    paddingTop: 20,
+  },
+  drawer: {
+    backgroundColor: Colors.background,
+    width: 300,
+  },
+  userSection: {
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    marginTop: 30,
+    marginBottom: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.primary,
+  },
+  avatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: Colors.primary,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  avatarText: {
+    color: Colors.white,
+    fontSize: 20,
+    fontWeight: "bold",
+  },
+  welcomeText: {
+    color: Colors.textGray,
+    fontSize: 12,
+  },
+  username: {
+    color: Colors.white,
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  menuItems: {
+    paddingHorizontal: 10,
+    marginBottom: 20,
+  },
+  sessionSection: {
+    marginTop: 10,
+    paddingHorizontal: 10,
+  },
+  sessionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 10,
+    marginBottom: 8,
+  },
+  sessionTitle: {
+    fontSize: 12,
+    fontWeight: "bold",
+    color: Colors.textGray,
+    letterSpacing: 1,
+  },
+  sessionItem: {
+    borderRadius: 12,
+    marginVertical: 2,
+    paddingVertical: 4,
+  },
+  sessionItemActive: {
+    backgroundColor: Colors.primary,
+  },
+  sessionLabelContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  sessionRole: {
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  sessionMeta: {
+    fontSize: 12,
+    color: Colors.textGray,
+    marginTop: 2,
+  },
+  incompleteDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "orange",
+    marginLeft: 8,
+  },
 });
