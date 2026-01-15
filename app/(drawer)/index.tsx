@@ -1,7 +1,7 @@
 import { Colors } from "@/constants/colors";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Animated,
   Dimensions,
@@ -11,20 +11,23 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Easing,
 } from "react-native";
 
 const { width } = Dimensions.get("window");
 
 const Home = () => {
   const router = useRouter();
+  const [fadeAnim] = useState(new Animated.Value(0));
+  const [slideAnim] = useState(new Animated.Value(50));
+  const [pulseAnim] = useState(new Animated.Value(1));
 
-  // Animation Values
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(50)).current;
-  const buttonScale = useRef(new Animated.Value(1)).current;
+  // Ambient Animations
+  const orb1Y = useRef(new Animated.Value(0)).current;
+  const orb2Y = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // Entrance Animation
+    // Entrance
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -34,85 +37,104 @@ const Home = () => {
       Animated.timing(slideAnim, {
         toValue: 0,
         duration: 800,
+        easing: Easing.out(Easing.exp),
         useNativeDriver: true,
       }),
     ]).start();
 
-    // Pulse Animation for Button
-    const pulse = Animated.loop(
+    // Pulsing Button
+    Animated.loop(
       Animated.sequence([
-        Animated.timing(buttonScale, {
+        Animated.timing(pulseAnim, {
           toValue: 1.05,
-          duration: 1000,
+          duration: 1500,
           useNativeDriver: true,
+          easing: Easing.inOut(Easing.ease),
         }),
-        Animated.timing(buttonScale, {
+        Animated.timing(pulseAnim, {
           toValue: 1,
-          duration: 1000,
+          duration: 1500,
           useNativeDriver: true,
+          easing: Easing.inOut(Easing.ease),
         }),
       ])
-    );
-    pulse.start();
+    ).start();
 
-    return () => pulse.stop();
+    // Orb 1 Animation (Playful Float)
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(orb1Y, {
+          toValue: -30,
+          duration: 4000,
+          useNativeDriver: true,
+          easing: Easing.inOut(Easing.sin),
+        }),
+        Animated.timing(orb1Y, {
+          toValue: 0,
+          duration: 4000,
+          useNativeDriver: true,
+          easing: Easing.inOut(Easing.sin),
+        }),
+      ])
+    ).start();
+
+    // Orb 2 Animation (Counter Float)
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(orb2Y, {
+          toValue: 40,
+          duration: 5000,
+          useNativeDriver: true,
+          easing: Easing.inOut(Easing.sin),
+        }),
+        Animated.timing(orb2Y, {
+          toValue: 0,
+          duration: 5000,
+          useNativeDriver: true,
+          easing: Easing.inOut(Easing.sin),
+        }),
+      ])
+    ).start();
+
   }, []);
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.background} />
 
-      {/* Background Decor */}
-      <View style={styles.decorCircle} />
+      {/* AMBIENT BACKGROUND ORBS */}
+      <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+        <Animated.View style={[styles.orb, styles.orb1, { transform: [{ translateY: orb1Y }] }]} />
+        <Animated.View style={[styles.orb, styles.orb2, { transform: [{ translateY: orb2Y }] }]} />
+      </View>
 
-      <View style={styles.container}>
-        {/* HERO SECTION */}
-        <Animated.View
-          style={[
-            styles.hero,
-            {
-              opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }],
-            },
-          ]}
-        >
-          <View style={styles.iconContainer}>
-            <Ionicons name="mic-outline" size={80} color={Colors.background} />
+      <View style={styles.content}>
+        <Animated.View style={[styles.heroSection, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+          <View style={styles.iconCircle}>
+            <Ionicons name="mic-outline" size={64} color={Colors.white} />
           </View>
 
-          <Text style={styles.title}>AI Interviewer</Text>
           <Text style={styles.tagline}>ELEVATE YOUR CAREER</Text>
-
-          <View style={styles.divider} />
-
+          <Text style={styles.title}>AI Interviewer</Text>
           <Text style={styles.description}>
-            Master your interview skills with real-time AI feedback.
-            Experience a new era of preparation.
+            Master your interview skills with real-time AI feedback and personalized coaching.
           </Text>
         </Animated.View>
 
-        {/* ACTIONS */}
-        <Animated.View
-          style={[
-            styles.actions,
-            {
-              opacity: fadeAnim,
-              transform: [{ scale: buttonScale }],
-            },
-          ]}
-        >
+        <Animated.View style={{ transform: [{ scale: pulseAnim }], width: "100%", alignItems: "center" }}>
           <TouchableOpacity
             style={styles.startButton}
-            activeOpacity={0.8}
             onPress={() => router.push("/(drawer)/select_interview")}
+            activeOpacity={0.8}
           >
-            <View style={styles.btnContent}>
-              <Text style={styles.startButtonText}>START INTERVIEW</Text>
-              <Ionicons name="arrow-forward-circle" size={28} color={Colors.background} />
-            </View>
+            <Text style={styles.startButtonText}>Start New Interview</Text>
+            <Ionicons name="arrow-forward" size={24} color={Colors.background} />
           </TouchableOpacity>
         </Animated.View>
       </View>
+
+      {/* Decorative Background Element */}
+      <View style={styles.decorCircle} pointerEvents="none" />
     </SafeAreaView>
   );
 };
@@ -120,101 +142,114 @@ const Home = () => {
 export default Home;
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
   container: {
     flex: 1,
-    padding: 24,
-    justifyContent: "space-between",
-    paddingBottom: 50,
-    zIndex: 1,
+    backgroundColor: Colors.background,
+    position: 'relative',
+    overflow: 'hidden' // Clip orbs
   },
-  decorCircle: {
-    position: "absolute",
-    top: -100,
-    right: -100,
+  orb: {
+    position: 'absolute',
+    borderRadius: 999,
+    opacity: 0.3,
+    zIndex: 0,
+  },
+  orb1: {
     width: 300,
     height: 300,
-    borderRadius: 150,
     backgroundColor: Colors.primary,
-    opacity: 0.5,
+    top: -50,
+    left: -80,
+    opacity: 0.2
   },
-  hero: {
+  orb2: {
+    width: 200,
+    height: 200,
+    backgroundColor: "#2563EB", // Blue accent
+    bottom: 150,
+    right: -50,
+    opacity: 0.15
+  },
+  content: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: 40,
+    justifyContent: "space-between",
+    paddingHorizontal: 24,
+    paddingBottom: 50,
+    paddingTop: 80, // Space for header
+    zIndex: 10, // Above orbs
   },
-  iconContainer: {
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    backgroundColor: Colors.white,
+  heroSection: {
+    alignItems: "center",
+    marginTop: 60,
+  },
+  iconCircle: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: Colors.primary,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 30,
-    shadowColor: Colors.white,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    shadowColor: Colors.primary,
     shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.5,
     shadowRadius: 20,
     elevation: 10,
   },
+  tagline: {
+    color: "#FFD700", // Gold
+    fontSize: 14,
+    fontWeight: "bold",
+    letterSpacing: 2,
+    marginBottom: 10,
+    textTransform: 'uppercase'
+  },
   title: {
     fontSize: 42,
-    fontWeight: "800",
+    fontWeight: "bold",
     color: Colors.white,
     textAlign: "center",
-    letterSpacing: 1,
-  },
-  tagline: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#FFD700", // Gold accent
-    letterSpacing: 4,
-    marginTop: 10,
-    marginBottom: 20,
-  },
-  divider: {
-    width: 60,
-    height: 4,
-    backgroundColor: Colors.primary,
-    borderRadius: 2,
-    marginBottom: 20,
+    marginBottom: 16,
   },
   description: {
     fontSize: 16,
     color: Colors.textGray,
     textAlign: "center",
-    lineHeight: 26,
-    maxWidth: "80%",
-  },
-  actions: {
-    width: "100%",
-    alignItems: "center",
+    lineHeight: 24,
+    paddingHorizontal: 20,
   },
   startButton: {
+    flexDirection: "row",
     backgroundColor: Colors.white,
+    paddingVertical: 18,
+    paddingHorizontal: 32,
+    borderRadius: 50,
+    alignItems: "center",
+    gap: 10,
     width: "100%",
-    paddingVertical: 20,
-    borderRadius: 30,
+    justifyContent: "center",
     shadowColor: Colors.white,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 15,
-    elevation: 8,
-  },
-  btnContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 12,
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 5,
   },
   startButtonText: {
     color: Colors.background,
     fontSize: 18,
-    fontWeight: "900",
-    letterSpacing: 1,
+    fontWeight: "bold",
+  },
+  decorCircle: {
+    position: 'absolute',
+    bottom: -100,
+    right: -100,
+    width: 300,
+    height: 300,
+    borderRadius: 150,
+    backgroundColor: Colors.primary,
+    opacity: 0.2,
+    zIndex: -1
   },
 });

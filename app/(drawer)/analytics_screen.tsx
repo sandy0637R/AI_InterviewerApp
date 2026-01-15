@@ -215,14 +215,43 @@ export default function AnalyticsScreen() {
 }
 
 function StatCard({ label, value, icon, highlight }: { label: string; value: string; icon: any; highlight?: boolean }) {
+  const scale = useRef(new Animated.Value(1)).current;
+
+  const onPressIn = () => {
+    Animated.spring(scale, {
+      toValue: 0.95,
+      useNativeDriver: true,
+      speed: 20
+    }).start();
+  };
+
+  const onPressOut = () => {
+    Animated.spring(scale, {
+      toValue: 1,
+      useNativeDriver: true,
+      speed: 20
+    }).start();
+  };
+
   return (
-    <View style={[styles.card, highlight && styles.highlightCard]}>
-      <View style={styles.cardHeader}>
-        <Ionicons name={icon} size={20} color={highlight ? Colors.background : Colors.textGray} />
-      </View>
-      <Text style={[styles.cardValue, highlight && { color: Colors.background }]}>{value}</Text>
-      <Text style={[styles.cardLabel, highlight && { color: Colors.background }]}>{label}</Text>
-    </View>
+    <TouchableOpacity
+      activeOpacity={1}
+      onPressIn={onPressIn}
+      onPressOut={onPressOut}
+      style={{ flex: 1 }}
+    >
+      <Animated.View style={[
+        styles.card,
+        highlight && styles.highlightCard,
+        { transform: [{ scale }] }
+      ]}>
+        <View style={styles.cardHeader}>
+          <Ionicons name={icon} size={20} color={highlight ? Colors.background : Colors.textGray} />
+        </View>
+        <Text style={[styles.cardValue, highlight && { color: Colors.background }]}>{value}</Text>
+        <Text style={[styles.cardLabel, highlight && { color: Colors.background }]}>{label}</Text>
+      </Animated.View>
+    </TouchableOpacity>
   );
 }
 
@@ -322,6 +351,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "700",
     color: Colors.white,
+    marginBottom: 10,
   },
   chartContainer: {
     backgroundColor: Colors.primary,
@@ -393,7 +423,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
     padding: 16,
     borderRadius: 16,
-    marginBottom: 12,
+    marginBottom: 20,
     borderWidth: 1,
     borderColor: Colors.border,
     flexDirection: 'row',

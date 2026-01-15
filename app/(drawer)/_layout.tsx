@@ -223,12 +223,52 @@ export default function DrawerLayout() {
         drawerLabelStyle: { fontSize: 16, fontWeight: "500" },
       }}
     >
-      <Drawer.Screen name="index" options={{ title: "Home" }} />
-      <Drawer.Screen name="profile" options={{ title: "Profile", drawerItemStyle: { display: user ? "flex" : "none" } }} />
-      <Drawer.Screen name="analytics_screen" options={{ title: "AnalyticsScreen", drawerItemStyle: { display: user ? "flex" : "none" } }} />
-      <Drawer.Screen name="select_interview" options={{ title: "Select Interview" }} />
-      <Drawer.Screen name="login" options={{ title: "Login", drawerItemStyle: { display: user ? "none" : "flex" } }} />
-      <Drawer.Screen name="register" options={{ title: "Register", drawerItemStyle: { display: user ? "none" : "flex" } }} />
+      <Drawer.Screen
+        name="index"
+        options={{
+          title: "Home",
+          drawerIcon: ({ color, size }) => <Ionicons name="home-outline" size={size} color={color} />
+        }}
+      />
+      <Drawer.Screen
+        name="profile"
+        options={{
+          title: "Profile",
+          drawerItemStyle: { display: user ? "flex" : "none" },
+          drawerIcon: ({ color, size }) => <Ionicons name="person-outline" size={size} color={color} />
+        }}
+      />
+      <Drawer.Screen
+        name="analytics_screen"
+        options={{
+          title: "Analytics",
+          drawerItemStyle: { display: user ? "flex" : "none" },
+          drawerIcon: ({ color, size }) => <Ionicons name="stats-chart-outline" size={size} color={color} />
+        }}
+      />
+      <Drawer.Screen
+        name="select_interview"
+        options={{
+          title: "Select Interview",
+          drawerIcon: ({ color, size }) => <Ionicons name="add-circle-outline" size={size} color={color} />
+        }}
+      />
+      <Drawer.Screen
+        name="login"
+        options={{
+          title: "Login",
+          drawerItemStyle: { display: user ? "none" : "flex" },
+          drawerIcon: ({ color, size }) => <Ionicons name="log-in-outline" size={size} color={color} />
+        }}
+      />
+      <Drawer.Screen
+        name="register"
+        options={{
+          title: "Register",
+          drawerItemStyle: { display: user ? "none" : "flex" },
+          drawerIcon: ({ color, size }) => <Ionicons name="person-add-outline" size={size} color={color} />
+        }}
+      />
       <Drawer.Screen name="interview_chat" options={{ title: "Ai Interview", drawerItemStyle: { display: "none" } }} />
       <Drawer.Screen name="session/[id]" options={{ title: "Session", drawerItemStyle: { display: "none" } }} />
     </Drawer>
