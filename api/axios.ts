@@ -4,11 +4,18 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Helper to get local IP
 const getBaseUrl = () => {
+    // 1. Production Mode (Standalone APK/AAB)
+    if (!__DEV__) {
+        return `https://ai-interviewer-backend-jxjz.onrender.com`;
+    }
+
+    // 2. Development Mode (USB/Simulator)
     const hostUri = Constants.expoConfig?.hostUri;
-    let host = "192.168.0.100"; // Fallback static IP
+    let host = "192.168.0.103"; // Fallback static IP
     if (hostUri) {
         host = hostUri.split(":")[0];
     }
+
     // Default to port 5000 for backend
     return `http://${host}:5000`;
 };
